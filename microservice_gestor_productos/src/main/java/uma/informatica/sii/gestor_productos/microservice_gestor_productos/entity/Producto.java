@@ -54,7 +54,7 @@ public class Producto implements Serializable {
                 '}';
     }
 
-    @Collumn(nullable = false)
+    @Column(nullable = false)
     private Long cuentaId;
 
     @ManyToMany
@@ -63,13 +63,13 @@ public class Producto implements Serializable {
         joinColumns = @JoinColumn(name = "producto_id"),
         inverseJoinColumns = @JoinColumn(name = "categoria_id")
     )
-    private Set<CategoriaProducto> categorias = new HashSet<>();
+    private Set<Categoria> categorias = new HashSet<>();
 
     @OneToMany(mappedBy = "productoOrigen")
-    private Set<RelacionProducto> relacionesOrigen = new HashSet<>();
+    private Set<Relacion> relacionesOrigen = new HashSet<>();
 
     @OneToMany(mappedBy = "productoDestino")
-    private Set<RelacionProducto> relacionesDestino = new HashSet<>();
+    private Set<Relacion> relacionesDestino = new HashSet<>();
 
     public Producto() {
         this.creado = LocalDateTime.now();
@@ -104,12 +104,12 @@ public class Producto implements Serializable {
     public Long getCuentaId() { return cuentaId; }
     public void setCuentaId(Long cuentaId) { this.cuentaId = cuentaId; }
 
-    public Set<CategoriaProducto> getCategorias() { return categorias; }
-    public void setCategorias(Set<CategoriaProducto> categorias) { this.categorias = categorias; }
+    public Set<Categoria> getCategorias() { return categorias; }
+    public void setCategorias(Set<Categoria> categorias) { this.categorias = categorias; }
 
-    public Set<RelacionProducto> getRelacionesOrigen() { return relacionesOrigen; }
-    public void setRelacionesOrigen(Set<RelacionProducto> relacionesOrigen) { this.relacionesOrigen = relacionesOrigen; }
+    public Set<Relacion> getRelacionesOrigen() { return relacionesOrigen; }
+    public void setRelacionesOrigen(Set<Relacion> relacionesOrigen) { this.relacionesOrigen = relacionesOrigen; }
 
-    public Set<RelacionProducto> getRelacionesDestino() { return relacionesDestino; }
-    public void setRelacionesDestino(Set<RelacionProducto> relacionesDestino) { this.relacionesDestino = relacionesDestino; }
+    public Set<Relacion> getRelacionesDestino() { return relacionesDestino; }
+    public void setRelacionesDestino(Set<Relacion> relacionesDestino) { this.relacionesDestino = relacionesDestino; }
 }

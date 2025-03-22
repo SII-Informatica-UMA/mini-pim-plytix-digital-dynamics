@@ -1,23 +1,29 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity;
 
-import javax.persistence.*;
-import java.util.HashSet;
+import jakarta.persistence.*;
 import java.util.Objects;
-import java.util.Set;
 
 @Entity
+@Table(name = "categorias")
 public class Categoria {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
+    @Column(unique = true, nullable = false)
     private String nombre;
 
-    @OneToMany(mappedBy = "categoria", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Producto> productos = new HashSet<>();
+    public Categoria() {}
 
     // Getters y Setters
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
     public String getNombre() {
         return nombre;
     }
@@ -29,7 +35,7 @@ public class Categoria {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Categoria)) return false;
+        if (o == null || getClass() != o.getClass()) return false;
         Categoria categoria = (Categoria) o;
         return Objects.equals(id, categoria.id);
     }
@@ -41,9 +47,6 @@ public class Categoria {
 
     @Override
     public String toString() {
-        return "Categoria{" +
-                "id=" + id +
-                ", nombre='" + nombre + '\'' +
-                '}';
+        return "Categoria{id=" + id + ", nombre='" + nombre + "'}";
     }
-} 
+}
