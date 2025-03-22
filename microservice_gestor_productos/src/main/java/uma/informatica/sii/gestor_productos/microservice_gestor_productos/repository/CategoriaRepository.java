@@ -10,7 +10,7 @@ import java.util.List;
 public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
   // Buscar categoría por ID
     @Query("SELECT c FROM Categoria c WHERE c.id = :id")
-    List<Categoria> findById(Long id);
+    List<Categoria> findById(Integer id);
 
     // Buscar categorías por nombre
     @Query("SELECT c FROM Categoria c WHERE c.nombre = :nombre")
