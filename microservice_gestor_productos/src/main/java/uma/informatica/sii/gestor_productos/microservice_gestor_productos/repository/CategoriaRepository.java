@@ -2,19 +2,23 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.repos
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import java.util.List;
+
 
 public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
   // Buscar categoría por ID
-    @Query("SELECT c FROM CategoriaProducto c WHERE c.id = :id")
-    List<CategoriaProducto> findById(Long id);
+    @Query("SELECT c FROM Categoria c WHERE c.id = :id")
+    List<Categoria> findById(Long id);
 
     // Buscar categorías por nombre
-    @Query("SELECT c FROM CategoriaProducto c WHERE c.nombre = :nombre")
-    List<CategoriaProducto> findByNombre(String nombre);
+    @Query("SELECT c FROM Categoria c WHERE c.nombre = :nombre")
+    List<Categoria> findByNombre(String nombre);
     // Contar el total de categorías
-    @Query("SELECT COUNT(c) FROM CategoriaProducto c")
+    @Query("SELECT COUNT(c) FROM Categoria c")
     long countCategorias();
     // Buscar categorías asociadas a un producto específico
-    @Query("SELECT c FROM CategoriaProducto c JOIN c.productos p WHERE p.id = :productoId")
-    List<CategoriaProducto> findByProductoId(Long productoId);
+    @Query("SELECT c FROM Categoria c JOIN c.productos p WHERE p.id = :productoId")
+    List<Categoria> findByProductoId(Long productoId);
 }
