@@ -4,4 +4,4 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
-} 
+}
