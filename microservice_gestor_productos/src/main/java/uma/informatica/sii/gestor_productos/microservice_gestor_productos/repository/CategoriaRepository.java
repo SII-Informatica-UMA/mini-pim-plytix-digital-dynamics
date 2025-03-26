@@ -14,6 +14,13 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     // Contar el total de categorías
     @Query("SELECT COUNT(c) FROM Categoria c")
     long countCategorias();
+
+    // Crear una categoría
+    @Query("INSERT INTO Categoria c (c.id, c.nombre) VALUES (:id, :nombre)")
+    Categoria insert(Categoria c);
+
+
+
     // Buscar categorías asociadas a un producto específico
     // @Query("SELECT c FROM Categoria c JOIN c.productos p WHERE p.id = :productoId")
     // List<Categoria> findByProductoId(Long productoId);

@@ -17,5 +17,3 @@ public interface RelacionRepository extends JpaRepository<Relacion, Long> {
 	@Query("DELETE FROM Relacion r WHERE r.id = :id")
 	void deleteById(int id);
 }
-
-
