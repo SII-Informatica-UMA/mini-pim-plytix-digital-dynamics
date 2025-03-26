@@ -18,10 +18,14 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     // Crear una categoría
     @Query("INSERT INTO Categoria c (c.id, c.nombre) VALUES (:id, :nombre)")
     Categoria insert(Categoria c);
+    // Modificar una categoría
+    @Query("UPDATE Categoria c SET c.nombre = :nombre WHERE c.id = :id")
+    Categoria update(Categoria c);
+    // Eliminar una categoría
+    @Query("DELETE FROM Categoria c WHERE c.id = :id")
+    void deleteById(Integer id);
 
-
-
-    // Buscar categorías asociadas a un producto específico
-    // @Query("SELECT c FROM Categoria c JOIN c.productos p WHERE p.id = :productoId")
-    // List<Categoria> findByProductoId(Long productoId);
+    // Obtener categorías de un producto
+    // @Query("SELECT c FROM Categoria c JOIN Producto p ON c.id = p.categorias WHERE p.id = :id")
+    // List<Categoria> findCategoriasByProductoId(Integer id);
 }
