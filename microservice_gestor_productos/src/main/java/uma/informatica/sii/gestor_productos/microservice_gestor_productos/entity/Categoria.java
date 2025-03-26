@@ -1,6 +1,8 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity;
 
 import jakarta.persistence.*;
+
+import java.util.List;
 import java.util.Objects;
 
 @Entity
@@ -12,6 +14,9 @@ public class Categoria {
 
     @Column(unique = true, nullable = false)
     private String nombre;
+
+    @ManyToMany(mappedBy = "categorias")
+    private List<Producto> productos;
 
     public Categoria() {}
 
@@ -30,6 +35,14 @@ public class Categoria {
 
     public void setNombre(String nombre) {
         this.nombre = nombre;
+    }
+
+    public List<Producto> getProductos() {
+        return productos;
+    }
+    
+    public void setProductos(List<Producto> productos) {
+        this.productos = productos;
     }
 
     @Override

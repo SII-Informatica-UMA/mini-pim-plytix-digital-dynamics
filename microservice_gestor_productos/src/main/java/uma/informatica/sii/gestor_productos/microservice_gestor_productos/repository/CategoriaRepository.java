@@ -24,8 +24,7 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     // Eliminar una categoría
     @Query("DELETE FROM Categoria c WHERE c.id = :id")
     void deleteById(Integer id);
-
     // Obtener categorías de un producto
-    // @Query("SELECT c FROM Categoria c JOIN Producto p ON c.id = p.categorias WHERE p.id = :id")
-    // List<Categoria> findCategoriasByProductoId(Integer id);
+    @Query("SELECT c FROM Categoria c JOIN c.productos p WHERE p.id = :productoId")
+    List<Categoria> findCategoriasByProductoId(Long productoId);
 }
