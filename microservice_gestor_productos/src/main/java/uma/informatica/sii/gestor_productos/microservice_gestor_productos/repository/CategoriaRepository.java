@@ -11,7 +11,6 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
   // Buscar categoría por ID
     @Query("SELECT c FROM Categoria c WHERE c.id = :id")
     List<Categoria> findById(Integer id);
-
     // Buscar categorías por nombre
     @Query("SELECT c FROM Categoria c WHERE c.nombre = :nombre")
     List<Categoria> findByNombre(String nombre);
@@ -19,6 +18,6 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     @Query("SELECT COUNT(c) FROM Categoria c")
     long countCategorias();
     // Buscar categorías asociadas a un producto específico
-    @Query("SELECT c FROM Categoria c JOIN c.productos p WHERE p.id = :productoId")
-    List<Categoria> findByProductoId(Long productoId);
+    // @Query("SELECT c FROM Categoria c JOIN c.productos p WHERE p.id = :productoId")
+    // List<Categoria> findByProductoId(Long productoId);
 }

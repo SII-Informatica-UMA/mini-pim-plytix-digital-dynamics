@@ -61,7 +61,9 @@ public class Producto implements Serializable {
     @JoinTable(
         name = "producto_categoria",
         joinColumns = @JoinColumn(name = "producto_id"),
-        inverseJoinColumns = @JoinColumn(name = "categoria_id")
+        foreignKey = @ForeignKey(name = "FK_PRODUCTO_CATEGORIA"),
+        inverseJoinColumns = @JoinColumn(name = "categoria_id"),
+        inverseForeignKey = @ForeignKey(name = "FK_CATEGORIA_PRODUCTO")
     )
     private Set<Categoria> categorias = new HashSet<>();
 
