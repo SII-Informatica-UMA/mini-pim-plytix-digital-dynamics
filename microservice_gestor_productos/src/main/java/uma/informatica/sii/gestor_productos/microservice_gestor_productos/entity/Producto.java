@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table( uniqueConstraints = {@UniqueConstraint(columnNames = {"gtin"})})
+
 public class Producto implements Serializable {
     
     @Id
@@ -60,8 +61,8 @@ public class Producto implements Serializable {
     @ManyToMany
     @JoinTable(
         name = "producto_categoria",
-        joinColumns = @JoinColumn(name = "producto_id"),
-        inverseJoinColumns = @JoinColumn(name = "categoria_id")
+        joinColumns = @JoinColumn(name = "producto_id", foreignKey = @ForeignKey(name = "FK_producto_categoria_producto")),
+        inverseJoinColumns = @JoinColumn(name = "categoria_id", foreignKey = @ForeignKey(name = "FK_producto_categoria_categoria"))
     )
     private Set<Categoria> categorias = new HashSet<>();
 
