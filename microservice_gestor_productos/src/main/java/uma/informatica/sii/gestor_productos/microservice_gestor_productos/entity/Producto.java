@@ -12,7 +12,7 @@ public class Producto implements Serializable {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
     @Column(nullable = false, unique = true) // GTIN único y obligatorio
     private String gtin;
     @Column(nullable = false)
@@ -25,6 +25,15 @@ public class Producto implements Serializable {
     private LocalDateTime creado;
     private LocalDateTime modificado;
     private String miniatura;
+
+    @ManyToMany
+    @JoinTable(
+        name = "producto_atributo",
+        joinColumns = @JoinColumn(name = "producto_id", foreignKey = @ForeignKey(name = "FK_producto_atributo_producto")),
+        inverseJoinColumns = @JoinColumn(name = "atributo_nombre", foreignKey = @ForeignKey(name = "FK_producto_atributo_atributo"))        
+    )
+    private Set<Atributo> atributos = new HashSet<>();
+
 
     // Implementación de hashCode y equals basada en GTIN
     @Override
@@ -79,9 +88,9 @@ public class Producto implements Serializable {
 
 
     // Getters y Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
+    
     public String getGtin() { return gtin; }
     public void setGtin(String gtin) { this.gtin = gtin; }
 
