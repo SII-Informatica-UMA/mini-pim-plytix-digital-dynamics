@@ -18,7 +18,6 @@ public class Categoria {
     @ManyToMany(mappedBy = "categorias")
     private List<Producto> productos;
 
-    //! public Categoria() {}
 
     // HashCode, equals y toString
     @Override

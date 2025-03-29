@@ -45,10 +45,10 @@ public class Producto{
     @OneToMany(mappedBy = "productoDestino")
     private Set<Relacion> relacionesDestino = new HashSet<>();
 
-    //! public Producto() {
-    //!     this.creado = LocalDateTime.now();
-    //!     this.modificado = LocalDateTime.now();
-    //! } revisar para ver si es necesario
+    // public Producto() {
+    //     this.creado = LocalDateTime.now();
+    //     this.modificado = LocalDateTime.now();
+    // } revisar para ver si es necesario
 
     // HashCode y equals 
     @Override

@@ -23,7 +23,6 @@ public class Relacion {
     @JoinColumn(name = "producto_destino_id", foreignKey = @ForeignKey(name = "FK_PRODUCTO_RELACION"), nullable = false)
     private Producto productoDestino;
 
-    //! public Relacion() {}
 
     
     // Equals y HashCode
