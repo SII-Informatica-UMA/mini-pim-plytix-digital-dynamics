@@ -20,7 +20,7 @@ public class Producto{
     private LocalDateTime modificado;
     private String miniatura;
 
-    @ManyToMany
+    @ManyToMany (cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "producto_atributo",
         joinColumns = @JoinColumn(name = "producto_id", foreignKey = @ForeignKey(name = "FK_producto_atributo_producto")),
@@ -31,7 +31,7 @@ public class Producto{
     @Column(nullable = false)
     private Integer cuentaId;
 
-    @ManyToMany
+    @ManyToMany (cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "producto_categoria",
         joinColumns = @JoinColumn(name = "producto_id", foreignKey = @ForeignKey(name = "FK_producto_categoria_producto")),
