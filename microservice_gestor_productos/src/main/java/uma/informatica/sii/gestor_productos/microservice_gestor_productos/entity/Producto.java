@@ -48,7 +48,7 @@ public class Producto{
     // public Producto() {
     //     this.creado = LocalDateTime.now();
     //     this.modificado = LocalDateTime.now();
-    // } revisar para ver si es necesario
+    // }
 
     // HashCode y equals 
     @Override
