@@ -4,10 +4,10 @@ import jakarta.persistence.*;
 import java.util.Objects;
 
 @Entity
-@Table(name = "relaciones")
 public class Relacion {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(nullable = false)
@@ -23,49 +23,9 @@ public class Relacion {
     @JoinColumn(name = "producto_destino_id", foreignKey = @ForeignKey(name = "FK_PRODUCTO_RELACION"), nullable = false)
     private Producto productoDestino;
 
-    public Relacion() {}
+    //! public Relacion() {}
 
-    // Getters y Setters
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
-
-    public Producto getProductoOrigen() {
-        return productoOrigen;
-    }
-
-    public void setProductoOrigen(Producto productoOrigen) {
-        this.productoOrigen = productoOrigen;
-    }
-
-    public Producto getProductoDestino() {
-        return productoDestino;
-    }
-
-    public void setProductoDestino(Producto productoDestino) {
-        this.productoDestino = productoDestino;
-    }
-
+    
     // Equals y HashCode
     @Override
     public boolean equals(Object o) {
@@ -89,4 +49,16 @@ public class Relacion {
                 ", descripcion='" + descripcion + '\'' +
                 '}';
     }
+    
+    // Getters y Setters
+    public Integer getId() { return id; }    
+    public void setId(Integer id) { this.id = id; }
+    public String getNombre() { return nombre; }    
+    public void setNombre(String nombre) { this.nombre = nombre; }    
+    public String getDescripcion() { return descripcion; }    
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }    
+    public Producto getProductoOrigen() { return productoOrigen; }
+    public void setProductoOrigen(Producto productoOrigen) { this.productoOrigen = productoOrigen; }    
+    public Producto getProductoDestino() { return productoDestino; }
+    public void setProductoDestino(Producto productoDestino) { this.productoDestino = productoDestino; }
 }

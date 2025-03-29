@@ -5,33 +5,13 @@ import java.util.*;
 @Entity
 public class Atributo {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(unique = true, nullable = false)
     private String nombre;
     private String valor;
 
     @ManyToMany(mappedBy = "atributos")
     private Set<Producto> productos = new HashSet<>();
-    // Getters y Setters
     
-    public String getNombre() {
-        return nombre;
-    }
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-    public String getValor() {
-        return valor;
-    }
-    public void setValor(String valor) {
-        this.valor = valor;
-    }
-    public Set<Producto> getProductos() {
-        return productos;
-    }
-    public void setProductos(Set<Producto> productos) {
-        this.productos = productos;
-    }
-
     // Implementación de hashCode, equals y toString
     @Override
     public int hashCode() {
@@ -47,8 +27,17 @@ public class Atributo {
     @Override
     public String toString() {
         return "Atributo{" +
-                "nombre='" + nombre + '\'' +
-                ", valor='" + valor + '\'' +
-                '}';
+        "nombre='" + nombre + '\'' +
+        ", valor='" + valor + '\'' +
+        '}';
     }
+    
+    // Getters y Setters
+    
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+    public String getValor() { return valor; }
+    public void setValor(String valor) { this.valor = valor; }
+    public Set<Producto> getProductos() { return productos; }
+    public void setProductos(Set<Producto> productos) { this.productos = productos; }
 }

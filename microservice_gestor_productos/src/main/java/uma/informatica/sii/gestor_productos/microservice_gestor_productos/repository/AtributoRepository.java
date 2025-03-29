@@ -8,6 +8,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity
 public interface AtributoRepository extends JpaRepository<Atributo, String> {
     
     // Buscar atributos por nombre
+    // // @Query("SELECT a FROM Atributo a WHERE a.nombre = :nombre")
     List<Atributo> findByNombre(String nombre);
 
     // Buscar atributos por valor

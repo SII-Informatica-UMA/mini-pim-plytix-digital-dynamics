@@ -2,22 +2,16 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.entit
 
 import java.util.*;
 import jakarta.persistence.*;
-import java.io.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table( uniqueConstraints = {@UniqueConstraint(columnNames = {"gtin"})})
-
-public class Producto implements Serializable {
-    
+public class Producto{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-    @Column(nullable = false, unique = true) // GTIN único y obligatorio
+    @Column(unique = true, nullable = false)
     private String gtin;
-    @Column(nullable = false)
     private String sku;
-    @Column(nullable = false)
     private String nombre;
     @Column(length = 255)
     private String textoCorto;
@@ -34,38 +28,8 @@ public class Producto implements Serializable {
     )
     private Set<Atributo> atributos = new HashSet<>();
 
-
-    // Implementación de hashCode y equals basada en GTIN
-    @Override
-    public int hashCode() {
-        return Objects.hash(gtin);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        Producto producto = (Producto) obj;
-        return Objects.equals(gtin, producto.gtin);
-    }
-
-    // Implementación de toString
-    @Override
-    public String toString() {
-        return "Producto{" +
-                "id=" + id +
-                ", gtin='" + gtin + '\'' +
-                ", sku='" + sku + '\'' +
-                ", nombre='" + nombre + '\'' +
-                ", textoCorto='" + textoCorto + '\'' +
-                ", creado=" + creado +
-                ", modificado=" + modificado +
-                ", miniatura='" + miniatura + '\'' +
-                '}';
-    }
-
     @Column(nullable = false)
-    private Long cuentaId;
+    private Integer cuentaId;
 
     @ManyToMany
     @JoinTable(
@@ -81,10 +45,40 @@ public class Producto implements Serializable {
     @OneToMany(mappedBy = "productoDestino")
     private Set<Relacion> relacionesDestino = new HashSet<>();
 
-    public Producto() {
-        this.creado = LocalDateTime.now();
-        this.modificado = LocalDateTime.now();
+    //! public Producto() {
+    //!     this.creado = LocalDateTime.now();
+    //!     this.modificado = LocalDateTime.now();
+    //! } revisar para ver si es necesario
+
+    // HashCode y equals 
+    @Override
+    public int hashCode() {
+        return Objects.hash(gtin);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Producto producto = (Producto) obj;
+        return Objects.equals(gtin, producto.gtin);
+    }
+
+    // toString
+    @Override
+    public String toString() {
+        return "Producto{" +
+                "id=" + id +
+                ", gtin='" + gtin + '\'' +
+                ", sku='" + sku + '\'' +
+                ", nombre='" + nombre + '\'' +
+                ", textoCorto='" + textoCorto + '\'' +
+                ", creado=" + creado +
+                ", modificado=" + modificado +
+                ", miniatura='" + miniatura + '\'' +
+                '}';
+    }
+
 
 
     // Getters y Setters
@@ -111,8 +105,8 @@ public class Producto implements Serializable {
     public String getMiniatura() { return miniatura; }
     public void setMiniatura(String miniatura) { this.miniatura = miniatura; }
 
-    public Long getCuentaId() { return cuentaId; }
-    public void setCuentaId(Long cuentaId) { this.cuentaId = cuentaId; }
+    public Integer getCuentaId() { return cuentaId; }
+    public void setCuentaId(Integer cuentaId) { this.cuentaId = cuentaId; }
 
     public Set<Categoria> getCategorias() { return categorias; }
     public void setCategorias(Set<Categoria> categorias) { this.categorias = categorias; }
