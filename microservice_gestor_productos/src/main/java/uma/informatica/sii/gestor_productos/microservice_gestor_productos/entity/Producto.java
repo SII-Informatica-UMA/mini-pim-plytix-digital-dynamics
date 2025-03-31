@@ -1,6 +1,9 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity;
 
 import java.util.*;
+
+import org.apache.coyote.http11.upgrade.InternalHttpUpgradeHandler;
+
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -111,4 +114,7 @@ public class Producto{
 
     public Set<Relacion> getRelacionesDestino() { return relacionesDestino; }
     public void setRelacionesDestino(Set<Relacion> relacionesDestino) { this.relacionesDestino = relacionesDestino; }
+
+    public Set<Atributo> getAtributos() { return atributos; }
+    public void setAtributos(Set<Atributo> atributos) { this.atributos = atributos;}
 }
