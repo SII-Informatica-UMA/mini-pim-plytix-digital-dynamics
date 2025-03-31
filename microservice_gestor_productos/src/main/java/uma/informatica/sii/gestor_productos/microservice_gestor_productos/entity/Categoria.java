@@ -1,7 +1,6 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity;
 
 import jakarta.persistence.*;
-
 import java.util.List;
 import java.util.Objects;
 

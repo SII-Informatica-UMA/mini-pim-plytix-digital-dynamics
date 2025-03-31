@@ -3,12 +3,14 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.repos
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
 
 import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.*;
 
 
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
     //Obtener Producto por id
-    List<Producto> findById(Integer id);
+    Optional<Producto> findById(Integer id);
     // Seleccionar Producto por cuentaId
     List<Producto> findByCuentaId(Integer cuentaId);
     // Obtener productos de una categoría
@@ -23,7 +25,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     List<Producto> findAtributosByProductoId(Integer productoId);
 
 	//Crear Producto y modificarlo
-    Producto save(Producto p);
+    <S extends Producto> S save(S producto);
     
 	//Eliminar Producto por id
     void deleteById(Integer id);
