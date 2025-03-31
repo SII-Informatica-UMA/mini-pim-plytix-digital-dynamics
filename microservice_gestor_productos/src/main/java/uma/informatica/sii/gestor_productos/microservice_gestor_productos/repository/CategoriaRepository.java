@@ -6,9 +6,16 @@ import java.util.List;
 
 public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     // Obtener categorías de un producto
-    @Query("SELECT c FROM Categoria c JOIN c.productos p WHERE p.id = :productoId")
-    List<Categoria> findCategoriasByProductoId(Long productoId);
+    @Query("SELECT c FROM Categoria c JOIN c.productos p WHERE p.id = :productoId AND p.cuentaId = c.cuentaId")
+    List<Categoria> findCategoriasByProductoId(Integer productoId);
 
+    // Obtener categorías por cuentaId
+    List<Categoria> findByCuentaId(Integer cuentaId);
+    // Buscar categorías por id
+    List<Categoria> findById(Integer id);
+    //  Buscar categorías por nombre
+    List<Categoria> findByNombre(String nombre);
+    
     // Crear y modificar una categoría
     Categoria save(Categoria c);
 
@@ -17,6 +24,4 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
 
     //  Contar el total de categorías
     long count();
-    //  Buscar categorías por nombre
-    List<Categoria> findByNombre(String nombre);
 }

@@ -27,6 +27,8 @@ public class Categoria {
         Categoria categoria = (Categoria) o;
         return Objects.equals(id, categoria.id);
     }
+    @Column(nullable = false)
+    private Integer cuentaId;
     
     @Override
     public int hashCode() {

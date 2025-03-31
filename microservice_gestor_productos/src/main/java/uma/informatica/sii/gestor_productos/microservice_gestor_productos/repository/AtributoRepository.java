@@ -12,4 +12,10 @@ public interface AtributoRepository extends JpaRepository<Atributo, String> {
 
     // Buscar atributos por valor
     List<Atributo> findByValor(String valor);
+
+    // Crear y modificar un atributo
+    Atributo save(Atributo atributo);
+
+    // Eliminar un atributo
+    void deleteByNombre(String nombre);
 }
