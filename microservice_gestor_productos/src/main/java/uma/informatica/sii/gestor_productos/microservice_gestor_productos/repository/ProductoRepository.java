@@ -11,12 +11,12 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     List<Producto> findById(Integer id);
     // Seleccionar Producto por cuentaId
     List<Producto> findByCuentaId(Integer cuentaId);
+    // Obtener productos de una categoría
+    @Query("SELECT p FROM Producto p JOIN p.categorias c WHERE c.id = :categoriaId AND p.cuentaId = c.cuentaId") // Ambos cuentaId deben coincidir, pero nos aseguramos de que el producto y categoria tengan la cuentaId correcta
+    List<Producto> findProductosByCategoriaId(Integer categoriaId);
     // Seleccionar Producto por gtin 
     List<Producto> findByGtin(String gtin);
 
-    // Obtener productos de una categoría
-    @Query("SELECT p FROM Producto p JOIN p.categorias c WHERE c.id = :categoriaId AND p.cuentaId = c.cuentaId")
-    List<Producto> findProductosByCategoriaId(Integer categoriaId);
 
     // Obtener los atributos de un producto
     @Query("SELECT p.atributos FROM Producto p WHERE p.id = :productoId")
