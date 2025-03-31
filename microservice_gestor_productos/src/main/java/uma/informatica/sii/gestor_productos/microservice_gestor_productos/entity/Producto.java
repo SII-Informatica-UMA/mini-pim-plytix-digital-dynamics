@@ -1,9 +1,6 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity;
 
 import java.util.*;
-
-import org.apache.coyote.http11.upgrade.InternalHttpUpgradeHandler;
-
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
