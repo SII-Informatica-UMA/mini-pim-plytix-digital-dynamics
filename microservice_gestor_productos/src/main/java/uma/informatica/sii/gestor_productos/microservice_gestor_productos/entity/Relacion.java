@@ -16,11 +16,11 @@ public class Relacion {
     private String descripcion;
 
     @ManyToOne (cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinColumn(name = "producto_origen_id", foreignKey = @ForeignKey(name = "FK_PRODUCTO_RELACION"), nullable = false)
+    @JoinColumn(name = "producto_origen_id", foreignKey = @ForeignKey(name = "FK_PRODUCTO_RELACION_ORIGEN"), nullable = false)
     private Producto productoOrigen;
 
     @ManyToOne (cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinColumn(name = "producto_destino_id", foreignKey = @ForeignKey(name = "FK_PRODUCTO_RELACION"), nullable = false)
+    @JoinColumn(name = "producto_destino_id", foreignKey = @ForeignKey(name = "FK_PRODUCTO_RELACION_DESTINO"), nullable = false)
     private Producto productoDestino;
 
 

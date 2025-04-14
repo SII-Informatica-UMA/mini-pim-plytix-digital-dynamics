@@ -4,7 +4,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios.ProductoService;    
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios.ProductoService;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.web.bind.annotation.GetMapping;
