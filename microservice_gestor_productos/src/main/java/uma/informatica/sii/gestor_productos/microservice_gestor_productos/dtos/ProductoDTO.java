@@ -17,6 +17,7 @@ public class ProductoDTO {
     private LocalDateTime creado;
     private LocalDateTime modificado;
     private String miniatura;
+    private Integer cuentaId;
     private List<CategoriaDTO> categorias;
     private List<RelacionProductoDTO> relaciones;
     private List<AtributoDTO> atributos;
