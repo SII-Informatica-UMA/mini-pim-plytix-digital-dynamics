@@ -7,17 +7,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios.CategoriaService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.controladores.CategoriaMapper;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.controladores.CategoriaMapper;
 
 @Service
 public class CategoriaServiceImpl implements CategoriaService {
 
     @Autowired
     private CategoriaRepository categoriaRepository;
-
-    @Autowired
-    private CategoriaMapper categoriaMapper;
 
     @Override
     public List<CategoriaDTO> findAll() {
@@ -27,7 +24,7 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     @Override
-    public CategoriaDTO findById(Long id) {
+    public CategoriaDTO findById(Integer id) {
         return categoriaRepository.findById(id)
                 .map(CategoriaMapper::toDTO)
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
@@ -35,12 +32,12 @@ public class CategoriaServiceImpl implements CategoriaService {
 
     @Override
     public CategoriaDTO create(CategoriaDTO categoriaDTO) {
-        Categoria categoria = categoriaMapper.toEntity(categoriaDTO);
+        Categoria categoria = CategoriaMapper.toEntity(categoriaDTO);
         return CategoriaMapper.toDTO(categoriaRepository.save(categoria));
     }
 
     @Override
-    public CategoriaDTO update(Long id, CategoriaDTO categoriaDTO) {
+    public CategoriaDTO update(Integer id, CategoriaDTO categoriaDTO) {
         Categoria existing = categoriaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
         existing.setNombre(categoriaDTO.getNombre()); // adapta los campos
@@ -48,7 +45,7 @@ public class CategoriaServiceImpl implements CategoriaService {
     }
 
     @Override
-    public void delete(Long id) {
+    public void delete(Integer id) {
         categoriaRepository.deleteById(id);
     }
 }

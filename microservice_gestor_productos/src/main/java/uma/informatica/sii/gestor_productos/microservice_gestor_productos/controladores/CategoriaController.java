@@ -20,7 +20,7 @@ public class CategoriaController {
     }
 
     @GetMapping("/{id}")
-    public CategoriaDTO getById(@PathVariable Long id) {
+    public CategoriaDTO getById(@PathVariable Integer id) {
         return categoriaService.findById(id);
     }
 
@@ -30,12 +30,12 @@ public class CategoriaController {
     }
 
     @PutMapping("/{id}")
-    public CategoriaDTO update(@PathVariable Long id, @RequestBody CategoriaDTO dto) {
+    public CategoriaDTO update(@PathVariable Integer id, @RequestBody CategoriaDTO dto) {
         return categoriaService.update(id, dto);
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable Integer id) {
         categoriaService.delete(id);
     }
 }

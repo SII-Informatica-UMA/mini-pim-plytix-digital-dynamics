@@ -13,12 +13,12 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     // Obtener categorías por cuentaId
     List<Categoria> findByCuentaId(Integer cuentaId);
     // Buscar categorías por id
-    List<Categoria> findById(Integer id);
+    Optional<Categoria> findById(Integer id);
     //  Buscar categorías por nombre
     Optional<Categoria> findByNombre(String nombre);
     
     // Crear y modificar una categoría
-    Categoria save(Categoria c);
+    <S extends Categoria> S save(S c);
 
     // Eliminar una categoría
     void deleteById(Integer id);
