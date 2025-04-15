@@ -3,6 +3,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import java.util.List;
+import java.util.Optional;
 
 public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     // Obtener categorías de un producto
@@ -14,7 +15,7 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     // Buscar categorías por id
     List<Categoria> findById(Integer id);
     //  Buscar categorías por nombre
-    List<Categoria> findByNombre(String nombre);
+    Optional<Categoria> findByNombre(String nombre);
     
     // Crear y modificar una categoría
     Categoria save(Categoria c);

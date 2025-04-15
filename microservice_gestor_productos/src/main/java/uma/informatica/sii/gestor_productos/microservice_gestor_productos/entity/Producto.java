@@ -31,7 +31,7 @@ public class Producto{
     @Column(nullable = false)
     private Integer cuentaId;
 
-    @ManyToMany (cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ManyToMany (cascade = {CascadeType.MERGE})
     @JoinTable(
         name = "producto_categoria",
         joinColumns = @JoinColumn(name = "producto_id", foreignKey = @ForeignKey(name = "FK_producto_categoria_producto")),
@@ -75,6 +75,11 @@ public class Producto{
     }
 
 
+    @PrePersist
+    public void prePersist() {
+        this.creado = LocalDateTime.now();
+        this.modificado = LocalDateTime.now();
+    }
 
     // Getters y Setters
     public Integer getId() { return id; }

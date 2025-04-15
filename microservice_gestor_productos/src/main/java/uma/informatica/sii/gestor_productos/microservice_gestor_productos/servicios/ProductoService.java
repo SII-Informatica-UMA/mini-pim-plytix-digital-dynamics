@@ -1,20 +1,29 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.controladores.ProductoMapper;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.*;
 @Service
 public class ProductoService {
+    private final CategoriaRepository categoriaRepository;
     private final ProductoRepository productoRepository;
-    public ProductoService(ProductoRepository productoRepository) {
+    public ProductoService(ProductoRepository productoRepository, CategoriaRepository categoriaRepository) {
         this.productoRepository = productoRepository;
+        this.categoriaRepository = categoriaRepository;
     }
     public List<Producto> buscarProductos(Integer idProducto, Integer idCuenta, Integer idCategoria, String gtin) {
         List<Producto> resultado = new ArrayList<>();
@@ -71,13 +80,28 @@ public class ProductoService {
         return productoRepository.save(producto);
     }
 
-    public Producto crearProducto(Producto producto, Integer cuentaId) {;
-        producto.setCuentaId(cuentaId);
+    public Producto crearProducto(Producto producto, Integer idCuenta) {
+        producto.setCuentaId(1);
+        Set<Categoria> categoriasNuevas = new HashSet<>();
+        if (producto.getCategorias() != null) {
+            for (Categoria cat : producto.getCategorias()) {
+                Optional<Categoria> categoriaExistente = categoriaRepository.findByNombre(cat.getNombre());
+                if (categoriaExistente.isPresent()) {
+                    throw new IllegalArgumentException("La categoría '" + cat.getNombre() + "' ya existe.");
+                } else {
+                    Categoria nuevaCategoria = new Categoria();
+                    nuevaCategoria.setNombre(cat.getNombre());
+                    nuevaCategoria.setCuentaId(1);
+                    Categoria categoriaGuardada = categoriaRepository.save(nuevaCategoria);
+                    categoriasNuevas.add(categoriaGuardada);
+                }
+            }
+        }
+        producto.setCategorias(categoriasNuevas);
         return productoRepository.save(producto);
     }
 
     public void eliminarProducto(Integer id) {
-        // Verificar si el producto existe antes de eliminarlo
         Optional<Producto> productoOptional = productoRepository.findById(id);
         if (productoOptional.isPresent()) {
             productoRepository.deleteById(id);
