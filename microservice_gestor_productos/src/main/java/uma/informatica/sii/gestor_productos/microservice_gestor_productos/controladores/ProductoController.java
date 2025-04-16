@@ -1,7 +1,5 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.controladores;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoDTO;
@@ -13,18 +11,10 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepc
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.ProductoMapper;
 
 import java.net.URI;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 
 
 
@@ -38,12 +28,42 @@ public class ProductoController {
     }
 
     @GetMapping
-    public List<ProductoDTO> obtenerTodosLosProductos(Integer idProducto, Integer idCuenta, Integer idCategoria, String gtin) {
-        List<Producto> productos = productoService.buscarProductos(idProducto, idCuenta, idCategoria, gtin);
-        return productos.stream()
-                .map(p -> new ProductoDTO())
-                .collect(Collectors.toList());
+    public ResponseEntity<?> getProducto(
+            @RequestParam(required = false) Integer idProducto,
+            @RequestParam(required = false) String gtin,
+            @RequestParam(required = false) Integer idCuenta,
+            @RequestParam(required = false) Integer idCategoria,
+            @RequestHeader("Authorization") String jwtToken) {
+
+        int count = 0;
+        if (idProducto != null) count++;
+        if (gtin != null) count++;
+        if (idCuenta != null) count++;
+        if (idCategoria != null) count++;
+
+        if (count != 1) {
+            return ResponseEntity.badRequest().body("Debe proporcionar exactamente un parámetro de consulta.");
+        }
+
+        if (idProducto != null) {
+            return ResponseEntity.ok(productoService.getProductoPorId(idProducto, jwtToken));
+        }
+
+        if (gtin != null) {
+            return ResponseEntity.ok(productoService.getProductoPorGtin(gtin, jwtToken));
+        }
+
+        if (idCuenta != null) {
+            return ResponseEntity.ok(productoService.getProductosPorIdCuenta(idCuenta, jwtToken));
+        }
+
+        if (idCategoria != null) {
+            return ResponseEntity.ok(productoService.getProductosPorIdCategoria(idCategoria, jwtToken));
+        }
+
+        return ResponseEntity.badRequest().build();
     }
+
 
     @PostMapping
     public ResponseEntity<ProductoDTO> crearProducto(@RequestBody ProductoDTO productoDTO, UriComponentsBuilder builder) {

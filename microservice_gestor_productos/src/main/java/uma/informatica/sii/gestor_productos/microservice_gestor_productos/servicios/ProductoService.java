@@ -1,66 +1,114 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.*;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
+
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.*;
 @Service
 public class ProductoService {
-    private final CategoriaRepository categoriaRepository;
+
+    @Value("${servicio.usuarios.baseurl}")
+    private String baseUrl;
+    
     private final ProductoRepository productoRepository;
-    public ProductoService(ProductoRepository productoRepository, CategoriaRepository categoriaRepository) {
+    private final UsuarioService usuarioService;
+    private final CategoriaRepository categoriaRepository;
+
+    public ProductoService(ProductoRepository productoRepository, UsuarioService usuarioService, CategoriaRepository categoriaRepository) {
         this.productoRepository = productoRepository;
+        this.usuarioService = usuarioService;
         this.categoriaRepository = categoriaRepository;
     }
-    public List<Producto> buscarProductos(Integer idProducto, Integer idCuenta, Integer idCategoria, String gtin) {
-        List<Producto> resultado = new ArrayList<>();
 
-        if (idProducto != null) {
-            Optional<Producto> optionalProducto = productoRepository.findById(idProducto);
-            if (optionalProducto.isEmpty()) {
-                throw new EntidadNoExistente();
-            }
-            Producto producto = optionalProducto.get();
-            // Si se pasó idCuenta, validamos que el producto pertenezca a esa cuenta
-            if (idCuenta != null && !producto.getCuentaId().equals(idCuenta)) {
-                throw new SinPermisosSuficientes();
-            }
-            resultado.add(producto);
-            return resultado;
+    public Producto getProductoPorId(Integer idProducto, String jwtToken) {
+        Optional<Producto> producto = productoRepository.findById(idProducto);
+        if (producto.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado");
+        }
+        Producto productoExistente = producto.get();
+        Integer idCuenta = productoExistente.getCuentaId();
+    
+        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
+            .map(UsuarioDTO::getId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+    
+        if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+    
+        return productoExistente;
+    }
+    
+
+    public Producto getProductoPorGtin(String gtin, String jwtToken) {
+        List<Producto> productos = productoRepository.findByGtin(gtin);
+    
+        if (productos.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado");
+        }
+    
+        Producto producto = productos.get(0);
+    
+        Integer idCuenta = producto.getCuentaId();
+    
+        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
+                .map(UsuarioDTO::getId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+    
+        if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+    
+        return producto;
+    }
+    
+
+    public List<Producto> getProductosPorIdCuenta(Integer idCuenta, String jwtToken) {
+        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
+                .map(UsuarioDTO::getId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+
+        if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
 
-        if (gtin != null && !gtin.isBlank()) {
-            resultado = productoRepository.findByGtin(gtin);
+        return productoRepository.findByCuentaId(idCuenta);
+    }
+
+    public List<Producto> getProductosPorIdCategoria(Integer idCategoria, String jwtToken) {
+        List<Producto> productos = productoRepository.findProductosByCategoriaId(idCategoria);
+    
+        if (productos.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoría sin productos");
         }
         
-        if (idCategoria != null) {
-            List<Producto> porCategoria = productoRepository.findProductosByCategoriaId(idCategoria);
-            if (idCuenta != null) {
-                porCategoria = porCategoria.stream()
-                    .filter(p -> p.getCuentaId().equals(idCuenta))
-                    .collect(Collectors.toList());
-            }
-            resultado = porCategoria;
+        Integer idCuenta = productos.get(0).getCuentaId();
+    
+        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
+                .map(UsuarioDTO::getId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+    
+        if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
-
-        if (idCuenta != null && resultado.isEmpty()) {
-            resultado = productoRepository.findByCuentaId(idCuenta);
-        }
-        if (resultado.isEmpty()) {
-            resultado = productoRepository.findAll();
-        }
-        return resultado;
+    
+        return productos;
     }
+    
 
     public Producto modificarProducto(Producto producto) {
         if (producto.getId() == null) {
