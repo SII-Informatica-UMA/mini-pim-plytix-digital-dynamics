@@ -16,26 +16,26 @@ public class CategoriaController {
 
     @GetMapping
     public List<CategoriaDTO> getAll() {
-        return categoriaService.findAll();
+        return categoriaService.buscarTodas();
     }
 
     @GetMapping("/{id}")
     public CategoriaDTO getById(@PathVariable Integer id) {
-        return categoriaService.findById(id);
+        return categoriaService.buscarPorId(id);
     }
 
     @PostMapping
     public CategoriaDTO create(@RequestBody CategoriaDTO dto) {
-        return categoriaService.create(dto);
+        return categoriaService.crearCategoria(dto);
     }
 
     @PutMapping("/{id}")
     public CategoriaDTO update(@PathVariable Integer id, @RequestBody CategoriaDTO dto) {
-        return categoriaService.update(id, dto);
+        return categoriaService.modificarCategoria(id, dto);
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) {
-        categoriaService.delete(id);
+        categoriaService.eliminarCategoria(id);
     }
 }

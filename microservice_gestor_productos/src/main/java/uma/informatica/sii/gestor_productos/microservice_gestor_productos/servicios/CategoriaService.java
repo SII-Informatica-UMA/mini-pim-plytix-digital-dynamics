@@ -1,54 +1,71 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios;
 
+import org.springframework.stereotype.Service;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.*;
+
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.controladores.CategoriaMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class CategoriaService {
 
-    @Autowired
-    private CategoriaRepository categoriaRepository;
+    private final CategoriaRepository categoriaRepository;
 
-    public List<CategoriaDTO> findAll() {
-        return categoriaRepository.findAll().stream()
+    public CategoriaService(CategoriaRepository categoriaRepository) {
+        this.categoriaRepository = categoriaRepository;
+    }
+
+    public List<CategoriaDTO> buscarTodas() {
+        return categoriaRepository.findAll()
+                .stream()
                 .map(CategoriaMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
-    public CategoriaDTO findById(Integer id) {
-        return categoriaRepository.findById(id)
-                .map(CategoriaMapper::toDTO)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoría no encontrada"));
-    }
-
-    public CategoriaDTO create(CategoriaDTO dto) {
-        Categoria entity = CategoriaMapper.toEntity(dto);
-        Categoria saved = categoriaRepository.save(entity);
-        return CategoriaMapper.toDTO(saved);
-    }
-
-    public CategoriaDTO update(Integer id, CategoriaDTO dto) {
-        Categoria existing = categoriaRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoría no encontrada"));
-
-        existing.setNombre(dto.getNombre()); // update only what's allowed
-        Categoria updated = categoriaRepository.save(existing);
-        return CategoriaMapper.toDTO(updated);
-    }
-
-    public void delete(Integer id) {
-        if (!categoriaRepository.existsById(id.longValue())) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoría no encontrada");
+    public CategoriaDTO buscarPorId(Integer id) {
+        Optional<Categoria> categoria = categoriaRepository.findById(id);
+        if (categoria.isEmpty()) {
+            throw new EntidadNoExistente();
         }
-        categoriaRepository.deleteById(id.longValue());
+        return CategoriaMapper.toDTO(categoria.get());
+    }
+
+    public CategoriaDTO crearCategoria(CategoriaDTO dto) {
+        Optional<Categoria> categoriaExistente = categoriaRepository.findByNombre(dto.getNombre());
+        if (categoriaExistente.isPresent()) {
+            throw new IllegalArgumentException("La categoría '" + dto.getNombre() + "' ya existe.");
+        }
+
+        Categoria nueva = CategoriaMapper.toEntity(dto);
+        nueva.setCuentaId(1); // o adaptar si viene de otro sitio
+        Categoria guardada = categoriaRepository.save(nueva);
+        return CategoriaMapper.toDTO(guardada);
+    }
+
+    public CategoriaDTO modificarCategoria(Integer id, CategoriaDTO dto) {
+        Optional<Categoria> existente = categoriaRepository.findById(id);
+        if (existente.isEmpty()) {
+            throw new EntidadNoExistente();
+        }
+
+        Categoria categoria = existente.get();
+        categoria.setNombre(dto.getNombre());
+
+        Categoria actualizada = categoriaRepository.save(categoria);
+        return CategoriaMapper.toDTO(actualizada);
+    }
+
+    public void eliminarCategoria(Integer id) {
+        Optional<Categoria> categoria = categoriaRepository.findById(id);
+        if (categoria.isEmpty()) {
+            throw new EntidadNoExistente();
+        }
+        categoriaRepository.deleteById(id);
     }
 }
