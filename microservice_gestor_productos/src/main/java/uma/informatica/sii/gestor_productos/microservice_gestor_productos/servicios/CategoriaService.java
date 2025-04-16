@@ -5,8 +5,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.reposi
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.*;
-
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.controladores.CategoriaMapper;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.CategoriaMapper;
 
 import java.util.List;
 import java.util.Optional;

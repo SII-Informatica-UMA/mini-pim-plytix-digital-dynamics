@@ -10,9 +10,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.controladores.ProductoMapper;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
 

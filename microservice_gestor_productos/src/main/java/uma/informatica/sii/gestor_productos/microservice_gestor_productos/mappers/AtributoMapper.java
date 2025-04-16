@@ -1,4 +1,4 @@
-package uma.informatica.sii.gestor_productos.microservice_gestor_productos.controladores;
+package uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers;
 
 import org.springframework.stereotype.Component;
 

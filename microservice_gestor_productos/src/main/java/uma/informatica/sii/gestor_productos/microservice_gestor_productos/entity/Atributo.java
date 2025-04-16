@@ -2,15 +2,12 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.entit
 import jakarta.persistence.*;
 import java.util.*;
 
-@Entity
+@Embeddable
 public class Atributo {
-    @Id
-    @Column(unique = true, nullable = false)
+    @Column(name = "nombre_atributo", unique = true, nullable = false)
     private String nombre;
     private String valor;
 
-    @ManyToMany(mappedBy = "atributos")
-    private Set<Producto> productos = new HashSet<>();
     
     // Implementación de hashCode, equals y toString
     @Override
@@ -38,6 +35,5 @@ public class Atributo {
     public void setNombre(String nombre) { this.nombre = nombre; }
     public String getValor() { return valor; }
     public void setValor(String valor) { this.valor = valor; }
-    public Set<Producto> getProductos() { return productos; }
-    public void setProductos(Set<Producto> productos) { this.productos = productos; }
+
 }

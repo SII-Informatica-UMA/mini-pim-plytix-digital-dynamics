@@ -19,6 +19,6 @@ public class ProductoDTO {
     private String miniatura;
     private Integer cuentaId;
     private List<CategoriaDTO> categorias;
-    private List<RelacionProductoDTO> relaciones;
     private List<AtributoDTO> atributos;
+    private List<RelacionProductoDTO> relaciones;
 }

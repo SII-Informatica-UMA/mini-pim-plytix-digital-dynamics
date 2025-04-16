@@ -20,30 +20,21 @@ public class Producto{
     private LocalDateTime modificado;
     private String miniatura;
 
-    @ManyToMany (cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(
-        name = "producto_atributo",
-        joinColumns = @JoinColumn(name = "producto_id", foreignKey = @ForeignKey(name = "FK_producto_atributo_producto")),
-        inverseJoinColumns = @JoinColumn(name = "atributo_nombre", foreignKey = @ForeignKey(name = "FK_producto_atributo_atributo"))        
-    )
-    private Set<Atributo> atributos = new HashSet<>();
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "producto_atributos", joinColumns = @JoinColumn(name = "producto_id"))
+    public Set<Atributo> atributos = new HashSet<>();
+
 
     @Column(nullable = false)
     private Integer cuentaId;
 
-    @ManyToMany (cascade = {CascadeType.MERGE})
+    @ManyToMany (fetch = FetchType.EAGER ,cascade = {CascadeType.MERGE})
     @JoinTable(
         name = "producto_categoria",
         joinColumns = @JoinColumn(name = "producto_id", foreignKey = @ForeignKey(name = "FK_producto_categoria_producto")),
         inverseJoinColumns = @JoinColumn(name = "categoria_id", foreignKey = @ForeignKey(name = "FK_producto_categoria_categoria"))
     )
     private Set<Categoria> categorias = new HashSet<>();
-
-    @OneToMany(mappedBy = "productoOrigen")
-    private Set<Relacion> relacionesOrigen = new HashSet<>();
-
-    @OneToMany(mappedBy = "productoDestino")
-    private Set<Relacion> relacionesDestino = new HashSet<>();
 
     // HashCode y equals 
     @Override
@@ -110,12 +101,6 @@ public class Producto{
 
     public Set<Categoria> getCategorias() { return categorias; }
     public void setCategorias(Set<Categoria> categorias) { this.categorias = categorias; }
-
-    public Set<Relacion> getRelacionesOrigen() { return relacionesOrigen; }
-    public void setRelacionesOrigen(Set<Relacion> relacionesOrigen) { this.relacionesOrigen = relacionesOrigen; }
-
-    public Set<Relacion> getRelacionesDestino() { return relacionesDestino; }
-    public void setRelacionesDestino(Set<Relacion> relacionesDestino) { this.relacionesDestino = relacionesDestino; }
 
     public Set<Atributo> getAtributos() { return atributos; }
     public void setAtributos(Set<Atributo> atributos) { this.atributos = atributos;}

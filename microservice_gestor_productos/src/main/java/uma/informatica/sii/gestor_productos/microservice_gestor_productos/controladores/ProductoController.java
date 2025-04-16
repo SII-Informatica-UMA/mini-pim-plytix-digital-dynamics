@@ -10,6 +10,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.CredencialesNoValidas;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.EntidadNoExistente;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.SinPermisosSuficientes;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.ProductoMapper;
 
 import java.net.URI;
 import java.util.List;

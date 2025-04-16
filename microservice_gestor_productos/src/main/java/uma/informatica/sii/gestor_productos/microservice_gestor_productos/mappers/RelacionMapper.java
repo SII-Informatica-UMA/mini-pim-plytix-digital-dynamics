@@ -1,4 +1,4 @@
-package uma.informatica.sii.gestor_productos.microservice_gestor_productos.controladores;
+package uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers;
 
 import org.springframework.stereotype.Component;
 
@@ -10,17 +10,11 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity
 public class RelacionMapper {
     public RelacionDTO toDTO(Relacion relacion) {
         if (relacion == null) return null;
-        // Relación básica
-        RelacionDTO rel = new RelacionDTO();
-        rel.setId(relacion.getId());
-        rel.setNombre(relacion.getNombre());
-        rel.setDescripcion(relacion.getDescripcion());
-        // dto.setRelacion(rel);
-        // Productos relacionados (solo ID)
-        //dto.setIdProductoOrigen(relacion.getProductoOrigen() != null ? relacion.getProductoOrigen().getId() : null);
-        //dto.setIdProductoDestino(relacion.getProductoDestino() != null ? relacion.getProductoDestino().getId() : null);
-
-        return rel;
+        RelacionDTO dto = new RelacionDTO();
+        dto.setId(relacion.getId());
+        dto.setNombre(relacion.getNombre());
+        dto.setDescripcion(relacion.getDescripcion());
+        return dto;
     }
 
     public Relacion toEntity(RelacionDTO dto) {

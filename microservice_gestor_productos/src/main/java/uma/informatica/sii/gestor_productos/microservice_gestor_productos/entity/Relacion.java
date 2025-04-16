@@ -15,16 +15,18 @@ public class Relacion {
 
     private String descripcion;
 
-    @ManyToOne (cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @Column(nullable = false)
+    private Integer cuentaId;
+
+    
+    @ManyToOne(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn(name = "producto_origen_id", foreignKey = @ForeignKey(name = "FK_PRODUCTO_RELACION_ORIGEN"), nullable = false)
     private Producto productoOrigen;
 
-    @ManyToOne (cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ManyToOne(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn(name = "producto_destino_id", foreignKey = @ForeignKey(name = "FK_PRODUCTO_RELACION_DESTINO"), nullable = false)
     private Producto productoDestino;
 
-
-    
     // Equals y HashCode
     @Override
     public boolean equals(Object o) {
@@ -56,8 +58,4 @@ public class Relacion {
     public void setNombre(String nombre) { this.nombre = nombre; }    
     public String getDescripcion() { return descripcion; }    
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }    
-    public Producto getProductoOrigen() { return productoOrigen; }
-    public void setProductoOrigen(Producto productoOrigen) { this.productoOrigen = productoOrigen; }    
-    public Producto getProductoDestino() { return productoDestino; }
-    public void setProductoDestino(Producto productoDestino) { this.productoDestino = productoDestino; }
 }

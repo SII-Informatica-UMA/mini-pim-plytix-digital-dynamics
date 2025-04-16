@@ -1,10 +1,11 @@
-package uma.informatica.sii.gestor_productos.microservice_gestor_productos.controladores;
+package uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.*;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.*;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Set;
 @Component
 public class ProductoMapper {
@@ -32,22 +33,7 @@ public class ProductoMapper {
         );
 
         // Relaciones
-        dto.setRelaciones(
-            producto.getRelacionesOrigen().stream()
-                .map(r -> {
-                    RelacionProductoDTO relDTO = new RelacionProductoDTO();
-                    relDTO.setIdProductoOrigen(r.getProductoOrigen().getId());
-                    relDTO.setIdProductoDestino(r.getProductoDestino().getId());
-
-                    RelacionDTO relacion = new RelacionDTO();
-                    relacion.setId(r.getId());
-                    relacion.setNombre(r.getNombre());
-                    relacion.setDescripcion(r.getDescripcion());
-
-                    relDTO.setRelacion(relacion);
-                    return relDTO;
-                }).collect(Collectors.toList())
-        );
+        dto.setRelaciones(new ArrayList<>());
         dto.setAtributos(producto.getAtributos().stream()
             .map(attr -> {
                 AtributoDTO a = new AtributoDTO();
@@ -55,6 +41,8 @@ public class ProductoMapper {
                 a.setValor(attr.getValor());
                 return a;
             }).collect(Collectors.toList()));
+        
+            dto.setCuentaId(producto.getCuentaId());
 
         return dto;
     }
@@ -93,39 +81,9 @@ public class ProductoMapper {
             })
             .collect(Collectors.toSet());
         producto.setCategorias(categorias);
-
-        // Mapear relaciones (productoOrigen y productoDestino deben tener al menos su ID)
-        Set<Relacion> relaciones = dto.getRelaciones().stream()
-            .map(relWrapper -> {
-                Relacion relacion = new Relacion();
-                relacion.setId(relWrapper.getRelacion().getId());
-                relacion.setNombre(relWrapper.getRelacion().getNombre());
-                relacion.setDescripcion(relWrapper.getRelacion().getDescripcion());
-
-                Producto origen = new Producto();
-                origen.setId(relWrapper.getIdProductoOrigen());
-                relacion.setProductoOrigen(origen);
-
-                Producto destino = new Producto();
-                destino.setId(relWrapper.getIdProductoDestino());
-                relacion.setProductoDestino(destino);
-
-                return relacion;
-            })
-            .collect(Collectors.toSet());
-
-        producto.setRelacionesOrigen(
-            relaciones.stream()
-                .filter(r -> r.getProductoOrigen().getId().equals(dto.getId()))
-                .collect(Collectors.toSet())
-        );
-
-        producto.setRelacionesDestino(
-            relaciones.stream()
-                .filter(r -> r.getProductoDestino().getId().equals(dto.getId()))
-                .collect(Collectors.toSet())
-        );
-
+        
+        producto.setCuentaId(dto.getCuentaId());
+        
         return producto;
     }
 }
