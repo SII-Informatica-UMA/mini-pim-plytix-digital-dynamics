@@ -2,8 +2,11 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.contr
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios.CategoriaService;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.EntidadNoExistente;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
@@ -35,7 +38,15 @@ public class CategoriaController {
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Integer id) {
+    public ResponseEntity<Void> delete(@PathVariable Integer id) {
         categoriaService.eliminarCategoria(id);
+        return ResponseEntity.noContent().build(); 
+    }
+    
+    
+
+    @ExceptionHandler(EntidadNoExistente.class)
+    public ResponseEntity<String> handleEntidadNoExistente(EntidadNoExistente ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 }

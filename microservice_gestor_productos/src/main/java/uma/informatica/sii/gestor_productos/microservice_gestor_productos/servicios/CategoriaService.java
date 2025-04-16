@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 @Service
 public class CategoriaService {
 
+
+
     private final CategoriaRepository categoriaRepository;
 
     public CategoriaService(CategoriaRepository categoriaRepository) {
@@ -62,10 +64,10 @@ public class CategoriaService {
     }
 
     public void eliminarCategoria(Integer id) {
-        Optional<Categoria> categoria = categoriaRepository.findById(id);
-        if (categoria.isEmpty()) {
-            throw new EntidadNoExistente();
-        }
-        categoriaRepository.deleteById(id);
+        Categoria categoria = categoriaRepository.findById(id)
+                .orElseThrow(EntidadNoExistente::new);
+        categoriaRepository.delete(categoria);
     }
+    
+    
 }
