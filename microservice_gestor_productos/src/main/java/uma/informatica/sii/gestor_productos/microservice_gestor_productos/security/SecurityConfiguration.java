@@ -17,7 +17,7 @@ import java.util.Optional;
 
 @Configuration
 @EnableWebSecurity
-public class SecurityConfguration {
+public class SecurityConfiguration{
     @Autowired
     private JwtRequestFilter jwtRequestFilter;
 
@@ -26,25 +26,24 @@ public class SecurityConfguration {
         return new BCryptPasswordEncoder();
     }
 
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(cs -> cs.disable())
-            .formLogin(formLogin ->formLogin.disable())
-            .httpBasic(httpBasic ->httpBasic.disable())
-            .authorizeHttpRequests(authorizeRequests ->
-                    authorizeRequests
-                        .requestMatchers("/sin-auth").permitAll()
-                        .anyRequest().authenticated()
-            )
-
-            .sessionManagement(sessionManagement ->
-                    sessionManagement
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            );
+            .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable())) 
+            .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/h2-console/**", "/auth/login").permitAll()
+            .anyRequest().authenticated()
+        )
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+    
         http.addFilterAfter(jwtRequestFilter, LogoutFilter.class);
         return http.build();
     }
+    
+
+    
 
     public static Optional<UserDetails> getAuthenticatedUser() {
         return Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())

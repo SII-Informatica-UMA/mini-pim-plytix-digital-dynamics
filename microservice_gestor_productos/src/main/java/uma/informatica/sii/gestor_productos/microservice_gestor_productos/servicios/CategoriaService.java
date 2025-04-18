@@ -1,72 +1,81 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
+import org.springframework.web.server.ResponseStatusException;
+
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioService;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.CategoriaMapper;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.*;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.CategoriaMapper;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.EntidadNoExistente;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class CategoriaService {
 
-
-
     private final CategoriaRepository categoriaRepository;
+    private final UsuarioService usuarioService;
 
-    public CategoriaService(CategoriaRepository categoriaRepository) {
+    public CategoriaService(CategoriaRepository categoriaRepository, UsuarioService usuarioService) {
         this.categoriaRepository = categoriaRepository;
+        this.usuarioService = usuarioService;
     }
 
-    public List<CategoriaDTO> buscarTodas() {
-        return categoriaRepository.findAll()
-                .stream()
-                .map(CategoriaMapper::toDTO)
-                .collect(Collectors.toList());
-    }
+    public CategoriaDTO getCategoriaById(Integer idCategoria, String jwtToken) {
+        Categoria categoria = categoriaRepository.findById(idCategoria)
+                .orElseThrow(EntidadNoExistente::new);
 
-    public CategoriaDTO buscarPorId(Integer id) {
-        Optional<Categoria> categoria = categoriaRepository.findById(id);
-        if (categoria.isEmpty()) {
-            throw new EntidadNoExistente();
+        Integer idCuenta = categoria.getCuentaId();
+
+        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
+                .map(UsuarioDTO::getId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+
+        if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: la categoría no pertenece a tu cuenta.");
         }
-        return CategoriaMapper.toDTO(categoria.get());
+
+        return CategoriaMapper.toDTO(categoria);
     }
 
-    public CategoriaDTO crearCategoria(CategoriaDTO dto) {
-        Optional<Categoria> categoriaExistente = categoriaRepository.findByNombre(dto.getNombre());
-        if (categoriaExistente.isPresent()) {
-            throw new IllegalArgumentException("La categoría '" + dto.getNombre() + "' ya existe.");
+    public CategoriaDTO crearCategoria(CategoriaDTO dto, String jwtToken) {
+        Optional<Categoria> existente = categoriaRepository.findByNombre(dto.getNombre());
+        if (existente.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La categoría '" + dto.getNombre() + "' ya existe.");
         }
 
         Categoria nueva = CategoriaMapper.toEntity(dto);
-        nueva.setCuentaId(1); // o adaptar si viene de otro sitio
+
+        // Obtener cuentaId a partir del usuario autenticado
+        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
+                .map(UsuarioDTO::getId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+
+        Integer cuentaId = usuarioService.getCuentaIdDelUsuario(idUsuario, jwtToken);
+        nueva.setCuentaId(cuentaId);
+
         Categoria guardada = categoriaRepository.save(nueva);
         return CategoriaMapper.toDTO(guardada);
     }
 
-    public CategoriaDTO modificarCategoria(Integer id, CategoriaDTO dto) {
-        Optional<Categoria> existente = categoriaRepository.findById(id);
-        if (existente.isEmpty()) {
-            throw new EntidadNoExistente();
+    public void eliminarCategoria(Integer idCategoria, String jwtToken) {
+        Categoria categoria = categoriaRepository.findById(idCategoria)
+                .orElseThrow(EntidadNoExistente::new);
+
+        Integer idCuenta = categoria.getCuentaId();
+
+        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
+                .map(UsuarioDTO::getId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+
+        if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: no puedes eliminar esta categoría.");
         }
 
-        Categoria categoria = existente.get();
-        categoria.setNombre(dto.getNombre());
-
-        Categoria actualizada = categoriaRepository.save(categoria);
-        return CategoriaMapper.toDTO(actualizada);
-    }
-
-    public void eliminarCategoria(Integer id) {
-        Categoria categoria = categoriaRepository.findById(id)
-                .orElseThrow(EntidadNoExistente::new);
         categoriaRepository.delete(categoria);
     }
-    
-    
 }

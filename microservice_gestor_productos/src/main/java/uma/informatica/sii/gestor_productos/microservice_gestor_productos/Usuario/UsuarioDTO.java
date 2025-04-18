@@ -10,4 +10,5 @@ public class UsuarioDTO {
     private String apellido2;
     private String email;
     private Usuario.Rol role;
+    private Integer cuentaId;
 }
