@@ -96,19 +96,4 @@ public class ProductoController {
         productoService.eliminarProducto(idProducto);
         return ResponseEntity.noContent().build();
     }
-
-    @ExceptionHandler(EntidadNoExistente.class)
-    public ResponseEntity<String> handleEntidadNoExistente(EntidadNoExistente ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
-    }
-
-    @ExceptionHandler(SinPermisosSuficientes.class)
-    public ResponseEntity<String> handleSinPermisosSuficientes(SinPermisosSuficientes ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
-    }
-
-    @ExceptionHandler(CredencialesNoValidas.class)
-    public ResponseEntity<String> handleCredencialesNoValidas(CredencialesNoValidas ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
-    }
 }

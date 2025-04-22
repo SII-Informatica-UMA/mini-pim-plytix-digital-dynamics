@@ -1,10 +1,12 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers;
 
+import org.springframework.stereotype.Component;
+
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionProductoDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Relacion;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.RelacionProducto;
-
+@Component
 public class RelacionProductoMapper {
 
     public static RelacionProducto toEntity(RelacionProductoDTO dto) {

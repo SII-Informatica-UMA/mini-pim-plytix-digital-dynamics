@@ -4,106 +4,158 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.Set;
 @Component
 public class ProductoMapper {
 
-    public static ProductoDTO toDTO(Producto producto) {
-        ProductoDTO dto = new ProductoDTO();
-        dto.setId(producto.getId());
-        dto.setGtin(producto.getGtin());
-        dto.setSku(producto.getSku());
-        dto.setNombre(producto.getNombre());
-        dto.setTextoCorto(producto.getTextoCorto());
-        dto.setCreado(producto.getCreado());
-        dto.setModificado(producto.getModificado());
-        dto.setMiniatura(producto.getMiniatura());
+    @Autowired
+    private static RelacionMapper relacionMapper;
+    
+        public static ProductoDTO toDTO(Producto producto) {
+            ProductoDTO dto = new ProductoDTO();
+            dto.setId(producto.getId());
+            dto.setGtin(producto.getGtin());
+            dto.setSku(producto.getSku());
+            dto.setNombre(producto.getNombre());
+            dto.setTextoCorto(producto.getTextoCorto());
+            dto.setCreado(producto.getCreado());
+            dto.setModificado(producto.getModificado());
+            dto.setMiniatura(producto.getMiniatura());
+    
+            // Categorías
+            dto.setCategorias(
+                producto.getCategorias().stream()
+                    .map(c -> {
+                        CategoriaDTO cdto = new CategoriaDTO();
+                        cdto.setId(c.getId());
+                        cdto.setNombre(c.getNombre());
+                        return cdto;
+                    }).collect(Collectors.toSet())
+            );
+    
+            dto.setRelaciones(
+                Stream.concat(
+                    producto.getRelacionesOrigen().stream(),
+                    producto.getRelacionesDestino().stream()
+                )
+                .map(rp -> {
+                    RelacionProductoDTO rpDto = new RelacionProductoDTO();
+            
+                    // Tipo de relación
+                    RelacionDTO relDto = new RelacionDTO();
+                    relDto.setId(rp.getTipoRelacion().getId());
+                    relDto.setNombre(rp.getTipoRelacion().getNombre());
+                    relDto.setDescripcion(rp.getTipoRelacion().getDescripcion());
+            
+                    rpDto.setRelacion(relDto);
+                    rpDto.setIdProductoOrigen(rp.getProductoOrigen().getId());
+                    rpDto.setIdProductoDestino(rp.getProductoDestino().getId());
+            
+                    return rpDto;
+                })
+                .collect(Collectors.toSet())
+            );
+            
+            dto.setAtributos(producto.getAtributos().stream()
+            .map(attr -> {
+                AtributoDTO a = new AtributoDTO();
+                a.setNombre(attr.getNombre());
+                a.setValor(attr.getValor());
+                return a;
+            }).collect(Collectors.toSet()));
+    
+            dto.setCuentaId(producto.getCuentaId());
+    
+            return dto;
+    
+        }
+        
+        public static Producto toEntity(ProductoDTO dto) {
+            if (dto == null) return null;
+    
+            Producto producto = new Producto();
+    
+            producto.setId(dto.getId());
+            producto.setGtin(dto.getGtin());
+            producto.setSku(dto.getSku());
+            producto.setNombre(dto.getNombre());
+            producto.setTextoCorto(dto.getTextoCorto());
+            producto.setModificado(dto.getModificado());
+            producto.setMiniatura(dto.getMiniatura());
+    
+            // Mapear atributos
+            Set<Atributo> atributos = dto.getAtributos().stream()
+                .map(attrDto -> {
+                    Atributo atributo = new Atributo();
+                    atributo.setNombre(attrDto.getNombre());
+                    atributo.setValor(attrDto.getValor());
+                    return atributo;
+                })
+                .collect(Collectors.toSet());
+            producto.setAtributos(atributos);
+    
+            // Mapear categorías
+            Set<Categoria> categorias = dto.getCategorias().stream()
+                .map(catDto -> {
+                    Categoria categoria = new Categoria();
+                    categoria.setId(catDto.getId());
+                    categoria.setNombre(catDto.getNombre());
+                    return categoria;
+                })
+                .collect(Collectors.toSet());
+            producto.setCategorias(categorias);
+    
+            // Mapear las relaciones (relacionesOrigen y relacionesDestino)
+            producto.setRelacionesOrigen(
+                dto.getRelaciones().stream()
+                .map(rpDto -> {
+                    RelacionProducto rp = new RelacionProducto();
+                    // Convertir la relación tipo
+                    Relacion tipoRelacion = relacionMapper.toEntity(rpDto.getRelacion());
 
-        // Categorías
-        dto.setCategorias(
-            producto.getCategorias().stream()
-                .map(c -> {
-                    CategoriaDTO cdto = new CategoriaDTO();
-                    cdto.setId(c.getId());
-                    cdto.setNombre(c.getNombre());
-                    return cdto;
-                }).collect(Collectors.toSet())
-        );
+                rp.setTipoRelacion(tipoRelacion);
 
-        dto.setRelaciones(
-            Stream.concat(
-                producto.getRelacionesOrigen().stream(),
-                producto.getRelacionesDestino().stream()
-            )
-            .map(rp -> {
-                RelacionProductoDTO rpDto = new RelacionProductoDTO();
-        
-                // Tipo de relación
-                RelacionDTO relDto = new RelacionDTO();
-                relDto.setId(rp.getTipoRelacion().getId());
-                relDto.setNombre(rp.getTipoRelacion().getNombre());
-                relDto.setDescripcion(rp.getTipoRelacion().getDescripcion());
-        
-                rpDto.setRelacion(relDto);
-                rpDto.setIdProductoOrigen(rp.getProductoOrigen().getId());
-                rpDto.setIdProductoDestino(rp.getProductoDestino().getId());
-        
-                return rpDto;
+                // Setear los productos de origen y destino
+                Producto productoOrigen = new Producto();
+                productoOrigen.setId(rpDto.getIdProductoOrigen());
+
+                Producto productoDestino = new Producto();
+                productoDestino.setId(rpDto.getIdProductoDestino());
+
+                rp.setProductoOrigen(productoOrigen);
+                rp.setProductoDestino(productoDestino);
+
+                return rp;
             })
             .collect(Collectors.toSet())
         );
-        
-        dto.setAtributos(producto.getAtributos().stream()
-        .map(attr -> {
-            AtributoDTO a = new AtributoDTO();
-            a.setNombre(attr.getNombre());
-            a.setValor(attr.getValor());
-            return a;
-        }).collect(Collectors.toSet()));
 
-        dto.setCuentaId(producto.getCuentaId());
+        producto.setRelacionesDestino(
+            dto.getRelaciones().stream()
+            .map(rpDto -> {
+                RelacionProducto rp = new RelacionProducto();
+                // Convertir la relación tipo
+                Relacion tipoRelacion = relacionMapper.toEntity(rpDto.getRelacion());
 
-        return dto;
+                rp.setTipoRelacion(tipoRelacion);
 
-    }
-    
-    public static Producto toEntity(ProductoDTO dto) {
-        if (dto == null) return null;
+                // Setear los productos de origen y destino
+                Producto productoOrigen = new Producto();
+                productoOrigen.setId(rpDto.getIdProductoDestino());  // Aquí se invierten los productos para destino
 
-        Producto producto = new Producto();
+                Producto productoDestino = new Producto();
+                productoDestino.setId(rpDto.getIdProductoOrigen());
 
-        producto.setId(dto.getId());
-        producto.setGtin(dto.getGtin());
-        producto.setSku(dto.getSku());
-        producto.setNombre(dto.getNombre());
-        producto.setTextoCorto(dto.getTextoCorto());
-        producto.setModificado(dto.getModificado());
-        producto.setMiniatura(dto.getMiniatura());
+                rp.setProductoOrigen(productoOrigen);
+                rp.setProductoDestino(productoDestino);
 
-        // Mapear atributos
-        Set<Atributo> atributos = dto.getAtributos().stream()
-            .map(attrDto -> {
-                Atributo atributo = new Atributo();
-                atributo.setNombre(attrDto.getNombre());
-                atributo.setValor(attrDto.getValor());
-                return atributo;
+                return rp;
             })
-            .collect(Collectors.toSet());
-        producto.setAtributos(atributos);
-
-        // Mapear categorías
-        Set<Categoria> categorias = dto.getCategorias().stream()
-            .map(catDto -> {
-                Categoria categoria = new Categoria();
-                categoria.setId(catDto.getId());
-                categoria.setNombre(catDto.getNombre());
-                return categoria;
-            })
-            .collect(Collectors.toSet());
-        producto.setCategorias(categorias);
+            .collect(Collectors.toSet())
+        );
         
         producto.setCuentaId(dto.getCuentaId());
         

@@ -18,10 +18,6 @@ public class Relacion {
     @Column(nullable = false)
     private Integer cuentaId;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "producto_id", foreignKey = @ForeignKey(name = "FK_relacion_producto"))
-    private Producto producto;
-
     // Equals y HashCode
     @Override
     public boolean equals(Object o) {
