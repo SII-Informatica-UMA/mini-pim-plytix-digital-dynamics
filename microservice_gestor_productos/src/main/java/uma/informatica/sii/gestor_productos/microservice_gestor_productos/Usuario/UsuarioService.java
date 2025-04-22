@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.RequestEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.security.JwtUtil;
 
@@ -30,7 +31,22 @@ public class UsuarioService {
     }
 
     public Optional<UsuarioDTO> getUsuario(Long id, String jwtToken) {
-        return Optional.empty();
+        var uri = UriComponentsBuilder.fromUriString(baseUrl+"/usuario")
+            .queryParam("id", id)
+            .build()
+            .toUri();
+
+        String appJwtToken = jwtUtil.generateToken(usuarioAplicacion);
+
+        var peticion = RequestEntity.get(uri)
+            .header("Authorization", "Bearer " + appJwtToken)
+            .build();
+
+        try {
+            return Optional.of(restTemplate.exchange(peticion, UsuarioDTO[].class).getBody()[0]);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 
     public Integer getCuentaIdDelUsuario(Long usuarioId, String jwtToken) {

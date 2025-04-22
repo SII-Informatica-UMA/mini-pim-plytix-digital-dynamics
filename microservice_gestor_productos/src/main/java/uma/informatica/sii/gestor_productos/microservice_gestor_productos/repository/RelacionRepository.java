@@ -7,8 +7,7 @@ public interface RelacionRepository extends JpaRepository<Relacion, Long> {
 	// Buscar por id la relacion
 	List<Relacion> findById(Integer id);
 	// Buscar por cuentaId la relacion
-	@Query("SELECT r FROM Relacion r WHERE r.productoOrigen.cuentaId = :cuentaId OR r.productoDestino.cuentaId = :cuentaId")
-	List<Relacion> findByCuentaId(Integer cuentaId);
+	List<Relacion> findAllByCuentaId(Integer cuentaId);
 
 	// Crear una nueva relacion y modificarla
 	Relacion save(Relacion r);

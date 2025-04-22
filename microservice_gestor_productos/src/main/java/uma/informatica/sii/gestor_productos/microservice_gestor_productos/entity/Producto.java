@@ -36,6 +36,12 @@ public class Producto{
     )
     private Set<Categoria> categorias = new HashSet<>();
 
+    @OneToMany(mappedBy = "productoOrigen", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<RelacionProducto> relacionesOrigen = new HashSet<>();
+
+    @OneToMany(mappedBy = "productoDestino", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<RelacionProducto> relacionesDestino = new HashSet<>();
+
     // HashCode y equals 
     @Override
     public int hashCode() {
@@ -104,4 +110,10 @@ public class Producto{
 
     public Set<Atributo> getAtributos() { return atributos; }
     public void setAtributos(Set<Atributo> atributos) { this.atributos = atributos;}
+
+    public Set<RelacionProducto> getRelacionesOrigen() { return relacionesOrigen; }
+    public void setRelacionesOrigen(Set<RelacionProducto> relacionesOrigen) { this.relacionesOrigen = relacionesOrigen; }
+
+    public Set<RelacionProducto> getRelacionesDestino() { return relacionesDestino; }
+    public void setRelacionesDestino(Set<RelacionProducto> relacionesDestino) { this.relacionesDestino = relacionesDestino; }
 }

@@ -17,12 +17,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     @Query("SELECT p FROM Producto p JOIN p.categorias c WHERE c.id = :categoriaId AND p.cuentaId = c.cuentaId") // Ambos cuentaId deben coincidir, pero nos aseguramos de que el producto y categoria tengan la cuentaId correcta
     List<Producto> findProductosByCategoriaId(Integer categoriaId);
     // Seleccionar Producto por gtin 
-    List<Producto> findByGtin(String gtin);
-
-
-    // Obtener los atributos de un producto
-    @Query("SELECT p.atributos FROM Producto p WHERE p.id = :productoId")
-    List<Producto> findAtributosByProductoId(Integer productoId);
+    Optional<Producto> findByGtin(String gtin);
 
 	//Crear Producto y modificarlo
     <S extends Producto> S save(S producto);

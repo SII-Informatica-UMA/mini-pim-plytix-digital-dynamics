@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 
 @RestController
-@RequestMapping("/productos")
+@RequestMapping("/producto")
 public class ProductoController {
     private final ProductoService productoService;
     public ProductoController(ProductoService productoService) {
@@ -80,11 +80,15 @@ public class ProductoController {
         return ResponseEntity.created(uri).body(producto);
     }
 
-    @PutMapping("{id}")
-    public ResponseEntity<ProductoDTO> modificarProducto(@PathVariable Integer id, @RequestBody ProductoDTO producto) {
-        producto.setId(id);
-        Producto productoModificado = productoService.modificarProducto(ProductoMapper.toEntity(producto));
-        return ResponseEntity.ok(ProductoMapper.toDTO(productoModificado));
+    @PutMapping ("/{idProducto}")
+    public ResponseEntity<ProductoDTO> actualizarProducto(
+            @PathVariable Integer idProducto,
+            @RequestBody ProductoDTO productoDTO,
+            @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
+        ProductoDTO actualizado = productoService.actualizarProducto(idProducto, productoDTO, jwtToken);
+        return new ResponseEntity<>(actualizado, HttpStatus.OK);
     }
     
     @DeleteMapping("/{idProducto}")

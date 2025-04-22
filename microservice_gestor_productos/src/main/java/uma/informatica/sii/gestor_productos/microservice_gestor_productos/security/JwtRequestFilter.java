@@ -1,6 +1,7 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.security;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.Usuario;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.CredencialesNoValidas;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -41,8 +42,10 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                 username = jwtTokenUtil.getUsernameFromToken(jwtToken);
             } catch (IllegalArgumentException e) {
                 logger.info("No puedo obtener el JWT");
+                throw new CredencialesNoValidas();
             } catch (ExpiredJwtException e) {
                 logger.info("El token ha expirado");
+                throw new CredencialesNoValidas();
             }
             logger.info("usuario = " + username);
         } else {

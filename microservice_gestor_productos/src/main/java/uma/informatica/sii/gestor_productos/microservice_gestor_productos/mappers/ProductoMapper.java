@@ -2,6 +2,7 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappe
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.*;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.stereotype.Component;
 
@@ -29,22 +30,44 @@ public class ProductoMapper {
                     cdto.setId(c.getId());
                     cdto.setNombre(c.getNombre());
                     return cdto;
-                }).collect(Collectors.toList())
+                }).collect(Collectors.toSet())
         );
 
-        // Relaciones
-        dto.setRelaciones(new ArrayList<>());
-        dto.setAtributos(producto.getAtributos().stream()
-            .map(attr -> {
-                AtributoDTO a = new AtributoDTO();
-                a.setNombre(attr.getNombre());
-                a.setValor(attr.getValor());
-                return a;
-            }).collect(Collectors.toList()));
+        dto.setRelaciones(
+            Stream.concat(
+                producto.getRelacionesOrigen().stream(),
+                producto.getRelacionesDestino().stream()
+            )
+            .map(rp -> {
+                RelacionProductoDTO rpDto = new RelacionProductoDTO();
         
-            dto.setCuentaId(producto.getCuentaId());
+                // Tipo de relación
+                RelacionDTO relDto = new RelacionDTO();
+                relDto.setId(rp.getTipoRelacion().getId());
+                relDto.setNombre(rp.getTipoRelacion().getNombre());
+                relDto.setDescripcion(rp.getTipoRelacion().getDescripcion());
+        
+                rpDto.setRelacion(relDto);
+                rpDto.setIdProductoOrigen(rp.getProductoOrigen().getId());
+                rpDto.setIdProductoDestino(rp.getProductoDestino().getId());
+        
+                return rpDto;
+            })
+            .collect(Collectors.toSet())
+        );
+        
+        dto.setAtributos(producto.getAtributos().stream()
+        .map(attr -> {
+            AtributoDTO a = new AtributoDTO();
+            a.setNombre(attr.getNombre());
+            a.setValor(attr.getValor());
+            return a;
+        }).collect(Collectors.toSet()));
+
+        dto.setCuentaId(producto.getCuentaId());
 
         return dto;
+
     }
     
     public static Producto toEntity(ProductoDTO dto) {

@@ -1,6 +1,7 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Set;
+
 import lombok.*;
 
 @Data
@@ -18,7 +19,7 @@ public class ProductoDTO {
     private LocalDateTime modificado;
     private String miniatura;
     private Integer cuentaId;
-    private List<CategoriaDTO> categorias;
-    private List<AtributoDTO> atributos;
-    private List<RelacionProductoDTO> relaciones;
+    private Set<CategoriaDTO> categorias;
+    private Set<AtributoDTO> atributos;
+    private Set<RelacionProductoDTO> relaciones;
 }

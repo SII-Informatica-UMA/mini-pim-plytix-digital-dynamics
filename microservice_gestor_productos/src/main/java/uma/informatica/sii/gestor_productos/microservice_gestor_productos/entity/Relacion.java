@@ -18,14 +18,9 @@ public class Relacion {
     @Column(nullable = false)
     private Integer cuentaId;
 
-    
-    @ManyToOne(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinColumn(name = "producto_origen_id", foreignKey = @ForeignKey(name = "FK_PRODUCTO_RELACION_ORIGEN"), nullable = false)
-    private Producto productoOrigen;
-
-    @ManyToOne(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinColumn(name = "producto_destino_id", foreignKey = @ForeignKey(name = "FK_PRODUCTO_RELACION_DESTINO"), nullable = false)
-    private Producto productoDestino;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "producto_id", foreignKey = @ForeignKey(name = "FK_relacion_producto"))
+    private Producto producto;
 
     // Equals y HashCode
     @Override
