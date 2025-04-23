@@ -9,6 +9,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepc
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.EntidadNoExistente;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.SinPermisosSuficientes;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.ProductoMapper;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
 
 import java.net.URI;
 
@@ -24,9 +25,11 @@ import org.springframework.web.bind.annotation.*;
 public class ProductoController {
     private final ProductoService productoService;
     private final ProductoMapper productoMapper;
-    public ProductoController(ProductoService productoService, ProductoMapper productoMapper) {
+    private final ProductoRepository productoRepository;
+    public ProductoController(ProductoService productoService, ProductoMapper productoMapper, ProductoRepository productoRepository) {
         this.productoService = productoService;
         this.productoMapper = productoMapper;
+        this.productoRepository = productoRepository;
     }
 
     @GetMapping
@@ -92,8 +95,8 @@ public class ProductoController {
     }
     
     @DeleteMapping("/{idProducto}")
-    public ResponseEntity<Void> eliminarProducto(@PathVariable Integer idProducto) {
-        productoService.eliminarProducto(idProducto);
+    public ResponseEntity<Void> eliminarProducto(@PathVariable Integer idProducto, @RequestHeader("Authorization") String jwtToken) {
+        productoService.eliminarProducto(idProducto, jwtToken);
         return ResponseEntity.noContent().build();
     }
 }

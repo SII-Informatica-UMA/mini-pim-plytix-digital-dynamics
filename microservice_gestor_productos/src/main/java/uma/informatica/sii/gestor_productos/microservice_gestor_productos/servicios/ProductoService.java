@@ -253,9 +253,15 @@ public class ProductoService {
         return nuevoProducto;
     }
 
-    public void eliminarProducto(Integer id) {
+    public void eliminarProducto(Integer id, String jwtToken) {
         Optional<Producto> productoOptional = productoRepository.findById(id);
         if (productoOptional.isPresent()) {
+            // Solo lo puede hacer un usuario que tenga acceso a la cuenta donde se encuentra el producto.
+            UsuarioDTO usuario = usuarioService.getUsuarioConectado(jwtToken)
+                    .orElseThrow(CredencialesNoValidas::new);
+            if(!usuarioService.usuarioPerteneceACuenta(usuario.getCuentaId(), usuario.getId(), jwtToken)){
+                throw new SinPermisosSuficientes();
+            }
             productoRepository.deleteById(id);
         } else {
             throw new EntidadNoExistente();
