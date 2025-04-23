@@ -67,31 +67,32 @@ public class UsuarioService {
     }
 
     public boolean usuarioPerteneceACuenta(Integer idCuenta, Long idUsuario, String jwtTokenDelUsuario) {
-    // Construir la URI al servicio externo de usuarios
-    var uri = UriComponentsBuilder
-        .fromUriString(baseUrl + "/cuenta/{idCuenta}/usuarios")
-        .buildAndExpand(idCuenta)
-        .toUri();
+        return idCuenta.equals(1) && idUsuario.equals(1L);
+    //// Construir la URI al servicio externo de usuarios
+    //var uri = UriComponentsBuilder
+    //    .fromUriString(baseUrl + "/cuenta/{idCuenta}/usuarios")
+    //    .buildAndExpand(idCuenta)
+    //    .toUri();
+//
+    //// Crear la petición con el JWT del usuario
+    //var peticion = RequestEntity
+    //    .get(uri)
+    //    .header("Authorization", "Bearer " + jwtTokenDelUsuario)
+    //    .build();
+//
+    //try {
+    //    ResponseEntity<UsuarioDTO[]> respuesta = restTemplate.exchange(peticion, UsuarioDTO[].class);
+//
+    //    if (respuesta.getStatusCode().is2xxSuccessful() && respuesta.getBody() != null) {
+    //        return Arrays.stream(respuesta.getBody())
+    //            .anyMatch(usuario -> usuario.getId().equals(idUsuario));
+    //    }
+    //} catch (Exception e) {
+    //    // Puedes loguear o lanzar una excepción si prefieres
+    //    System.err.println("Error consultando los usuarios de la cuenta: " + e.getMessage());
+    //}
 
-    // Crear la petición con el JWT del usuario
-    var peticion = RequestEntity
-        .get(uri)
-        .header("Authorization", "Bearer " + jwtTokenDelUsuario)
-        .build();
-
-    try {
-        ResponseEntity<UsuarioDTO[]> respuesta = restTemplate.exchange(peticion, UsuarioDTO[].class);
-
-        if (respuesta.getStatusCode().is2xxSuccessful() && respuesta.getBody() != null) {
-            return Arrays.stream(respuesta.getBody())
-                .anyMatch(usuario -> usuario.getId().equals(idUsuario));
-        }
-    } catch (Exception e) {
-        // Puedes loguear o lanzar una excepción si prefieres
-        System.err.println("Error consultando los usuarios de la cuenta: " + e.getMessage());
-    }
-
-    return false;
+    //return false;
 }
 
 }

@@ -14,10 +14,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.*;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionProductoDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Atributo;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
@@ -40,14 +42,17 @@ public class ProductoService {
     private final CategoriaRepository categoriaRepository;
     private final ProductoMapper productoMapper;
     private final CuentaService cuentaService;
+    private final RelacionRepository relacionRepository;
 
     @Autowired
-    public ProductoService(ProductoRepository productoRepository, UsuarioService usuarioService, CategoriaRepository categoriaRepository, ProductoMapper productoMapper, CuentaService cuentaService) {
+    public ProductoService(ProductoRepository productoRepository, UsuarioService usuarioService, CategoriaRepository categoriaRepository, ProductoMapper productoMapper, CuentaService cuentaService, RelacionRepository relacionRepository) {
         this.productoRepository = productoRepository;
         this.usuarioService = usuarioService;
         this.categoriaRepository = categoriaRepository;
         this.productoMapper = productoMapper;
         this.cuentaService = cuentaService;
+        this.relacionRepository = relacionRepository;
+
     }
 
 
@@ -184,35 +189,30 @@ public class ProductoService {
             .map(UsuarioDTO::getId)
             .orElseThrow(CredencialesNoValidas::new);
     
-        //UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
-        //    .orElseThrow(() -> new EntidadNoExistente());
-        //if(!usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken)){
-        //    System.out.println("paso1");
-        //    throw new SinPermisosSuficientes();
-        //}
+        UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
+            .orElseThrow(() -> new EntidadNoExistente());
+        if(!usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken)){
+            throw new SinPermisosSuficientes();
+        }
     
         Producto producto = productoMapper.toEntity(productoDTO);
         // comprobar que incluye categorías
         if (productoDTO.getCategorias() == null || productoDTO.getCategorias().isEmpty()) {
-            System.out.println("paso2");
             throw new CredencialesNoValidas();
         }
         // comprobar que incluye relaciones
         if (productoDTO.getRelaciones() == null || productoDTO.getRelaciones().isEmpty()) {
-            System.out.println("paso3");
             throw new CredencialesNoValidas();
         }
         // 	Sin permisos suficientes. También se puede dar este código si ya hay otro producto con el mismo GTIN.
         
         if (productoRepository.findByGtin(productoDTO.getGtin()).isPresent()) {
-            System.out.println("paso4");
             throw new SinPermisosSuficientes();
         }
         // comprobar que no se exceden los límites fijados por el plan de la cuenta
         int productosActuales = productoRepository.findByCuentaId(idCuenta).size();
         if (!cuentaService.puedeCrearProducto(Long.valueOf(idCuenta), productosActuales)) {
-            System.out.println("paso5");
-            throw new EntidadNoExistente();
+            throw new SinPermisosSuficientes();
         }
         // crear el producto
         producto.setId(null);
@@ -230,6 +230,12 @@ public class ProductoService {
                 .collect(Collectors.toSet());
         producto.setCategorias(categorias);
         // añadir las relaciones origen y destino
+        for (RelacionProductoDTO relacionDTO : productoDTO.getRelaciones()) {
+            Integer tipoRelacionId = relacionDTO.getRelacion().getId(); // o lo que uses en el DTO
+                if (!relacionRepository.existsById(tipoRelacionId)) {
+                    throw new EntidadNoExistente();
+                }
+        }
         Set<RelacionProducto> relaciones = productoDTO.getRelaciones().stream()
                 .map(RelacionProductoMapper::toEntity)
                 .collect(Collectors.toSet());
