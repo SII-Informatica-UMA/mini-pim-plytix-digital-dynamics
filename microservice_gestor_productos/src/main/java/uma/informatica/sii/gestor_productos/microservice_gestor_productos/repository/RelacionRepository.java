@@ -7,7 +7,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity
 
 public interface RelacionRepository extends JpaRepository<Relacion, Integer> {
 	// Buscar por id la relacion
-	Optional findById(Integer id);
+	Optional<Relacion> findById(Integer id);
 	// Buscar por cuentaId la relacion
 	List<Relacion> findAllByCuentaId(Integer cuentaId);
 

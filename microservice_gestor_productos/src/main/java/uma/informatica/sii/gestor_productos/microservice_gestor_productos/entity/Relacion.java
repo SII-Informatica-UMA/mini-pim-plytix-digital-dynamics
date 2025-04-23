@@ -49,4 +49,6 @@ public class Relacion {
     public void setNombre(String nombre) { this.nombre = nombre; }    
     public String getDescripcion() { return descripcion; }    
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }    
+    public Integer getCuentaId() { return cuentaId; }
+    public void setCuentaId(Integer cuentaId) { this.cuentaId = cuentaId; }
 }
