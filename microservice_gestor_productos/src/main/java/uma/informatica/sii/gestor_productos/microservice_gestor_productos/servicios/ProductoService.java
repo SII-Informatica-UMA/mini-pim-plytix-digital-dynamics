@@ -15,8 +15,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.*;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Atributo;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Relacion;
@@ -26,6 +28,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mapper
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.ProductoMapper;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.RelacionMapper;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.RelacionProductoMapper;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.AtributoMapper;
 @Service
 public class ProductoService {
 
@@ -36,13 +39,15 @@ public class ProductoService {
     private final UsuarioService usuarioService;
     private final CategoriaRepository categoriaRepository;
     private final ProductoMapper productoMapper;
+    private final CuentaService cuentaService;
 
     @Autowired
-    public ProductoService(ProductoRepository productoRepository, UsuarioService usuarioService, CategoriaRepository categoriaRepository, ProductoMapper productoMapper) {
+    public ProductoService(ProductoRepository productoRepository, UsuarioService usuarioService, CategoriaRepository categoriaRepository, ProductoMapper productoMapper, CuentaService cuentaService) {
         this.productoRepository = productoRepository;
         this.usuarioService = usuarioService;
         this.categoriaRepository = categoriaRepository;
         this.productoMapper = productoMapper;
+        this.cuentaService = cuentaService;
     }
 
 
@@ -158,6 +163,12 @@ public class ProductoService {
 
         producto.setRelacionesDestino(relaciones);
 
+        // añadir los atributos
+        Set<Atributo> atributos = productoDTO.getAtributos().stream()
+                .map(AtributoMapper::toEntity)
+                .collect(Collectors.toSet());
+        producto.setAtributos(atributos);
+
     
         Producto actualizado = productoRepository.save(producto);
     
@@ -165,25 +176,75 @@ public class ProductoService {
     }
     
 
-    public Producto crearProducto(Producto producto, Integer idCuenta) {
-        producto.setCuentaId(1);
-        Set<Categoria> categoriasNuevas = new HashSet<>();
-        if (producto.getCategorias() != null) {
-            for (Categoria cat : producto.getCategorias()) {
-                Optional<Categoria> categoriaExistente = categoriaRepository.findByNombre(cat.getNombre());
-                if (categoriaExistente.isPresent()) {
-                    throw new IllegalArgumentException("La categoría '" + cat.getNombre() + "' ya existe.");
-                } else {
-                    Categoria nuevaCategoria = new Categoria();
-                    nuevaCategoria.setNombre(cat.getNombre());
-                    nuevaCategoria.setCuentaId(1);
-                    Categoria categoriaGuardada = categoriaRepository.save(nuevaCategoria);
-                    categoriasNuevas.add(categoriaGuardada);
-                }
-            }
+    public Producto crearProducto(ProductoDTO productoDTO, Integer idCuenta, String jwtToken) {
+        // 1. Usuarios con acceso a la cuenta pueden crear productos. 
+        // 2. El producto incluye las categorías y también las relaciones. 
+        // Esta operación debe comprobar que no se exceden los límites fijados por el plan de la cuenta.
+        Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
+            .map(UsuarioDTO::getId)
+            .orElseThrow(CredencialesNoValidas::new);
+    
+        //UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
+        //    .orElseThrow(() -> new EntidadNoExistente());
+        //if(!usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken)){
+        //    System.out.println("paso1");
+        //    throw new SinPermisosSuficientes();
+        //}
+    
+        Producto producto = productoMapper.toEntity(productoDTO);
+        // comprobar que incluye categorías
+        if (productoDTO.getCategorias() == null || productoDTO.getCategorias().isEmpty()) {
+            System.out.println("paso2");
+            throw new CredencialesNoValidas();
         }
-        producto.setCategorias(categoriasNuevas);
-        return productoRepository.save(producto);
+        // comprobar que incluye relaciones
+        if (productoDTO.getRelaciones() == null || productoDTO.getRelaciones().isEmpty()) {
+            System.out.println("paso3");
+            throw new CredencialesNoValidas();
+        }
+        // 	Sin permisos suficientes. También se puede dar este código si ya hay otro producto con el mismo GTIN.
+        
+        if (productoRepository.findByGtin(productoDTO.getGtin()).isPresent()) {
+            System.out.println("paso4");
+            throw new SinPermisosSuficientes();
+        }
+        // comprobar que no se exceden los límites fijados por el plan de la cuenta
+        int productosActuales = productoRepository.findByCuentaId(idCuenta).size();
+        if (!cuentaService.puedeCrearProducto(Long.valueOf(idCuenta), productosActuales)) {
+            System.out.println("paso5");
+            throw new EntidadNoExistente();
+        }
+        // crear el producto
+        producto.setId(null);
+        producto.setGtin(productoDTO.getGtin());
+        producto.setSku(productoDTO.getSku());
+        producto.setNombre(productoDTO.getNombre());
+        producto.setTextoCorto(productoDTO.getTextoCorto());
+        producto.setMiniatura(productoDTO.getMiniatura());
+        producto.setModificado(LocalDateTime.now());
+        producto.setCuentaId(idCuenta);
+
+        // añadir las categorías
+        Set<Categoria> categorias = productoDTO.getCategorias().stream()
+                .map(CategoriaMapper::toEntity) 
+                .collect(Collectors.toSet());
+        producto.setCategorias(categorias);
+        // añadir las relaciones origen y destino
+        Set<RelacionProducto> relaciones = productoDTO.getRelaciones().stream()
+                .map(RelacionProductoMapper::toEntity)
+                .collect(Collectors.toSet());
+        producto.setRelacionesDestino(relaciones);
+        
+        // añadir los atributos
+        Set<Atributo> atributos = productoDTO.getAtributos().stream()
+                .map(AtributoMapper::toEntity)
+                .collect(Collectors.toSet());
+        producto.setAtributos(atributos);
+
+        // guardar el producto
+        Producto nuevoProducto = productoRepository.save(producto);
+        // devolver el producto creado
+        return nuevoProducto;
     }
 
     public void eliminarProducto(Integer id) {

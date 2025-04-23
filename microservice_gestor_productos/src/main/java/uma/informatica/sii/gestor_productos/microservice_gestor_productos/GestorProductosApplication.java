@@ -16,7 +16,7 @@ public class GestorProductosApplication implements CommandLineRunner {
         SpringApplication.run(GestorProductosApplication.class, args);
     }
 
-        @Bean
+    @Bean
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder.build();
     }

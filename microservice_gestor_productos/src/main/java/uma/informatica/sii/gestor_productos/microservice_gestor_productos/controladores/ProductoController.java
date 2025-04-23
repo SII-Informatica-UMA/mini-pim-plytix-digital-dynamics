@@ -68,12 +68,10 @@ public class ProductoController {
 
 
     @PostMapping
-    public ResponseEntity<ProductoDTO> crearProducto(@RequestBody ProductoDTO productoDTO, UriComponentsBuilder builder) {
-        productoDTO.setId(null);
+    public ResponseEntity<ProductoDTO> crearProducto(@RequestBody ProductoDTO productoDTO,@RequestParam  Integer cuentaId, @RequestHeader("Authorization") String authorizationHeader,UriComponentsBuilder builder) {
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
         ProductoDTO producto = productoMapper.toDTO(
-            productoService.crearProducto(
-                productoMapper.toEntity(productoDTO), productoDTO.getCuentaId()
-            )
+            productoService.crearProducto(productoDTO,cuentaId,jwtToken)
         );
         URI uri = builder
                 .path(String.format("/%d", productoDTO.getId()))
