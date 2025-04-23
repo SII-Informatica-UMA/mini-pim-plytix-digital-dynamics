@@ -23,8 +23,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/producto")
 public class ProductoController {
     private final ProductoService productoService;
-    public ProductoController(ProductoService productoService) {
+    private final ProductoMapper productoMapper;
+    public ProductoController(ProductoService productoService, ProductoMapper productoMapper) {
         this.productoService = productoService;
+        this.productoMapper = productoMapper;
     }
 
     @GetMapping
@@ -68,9 +70,9 @@ public class ProductoController {
     @PostMapping
     public ResponseEntity<ProductoDTO> crearProducto(@RequestBody ProductoDTO productoDTO, UriComponentsBuilder builder) {
         productoDTO.setId(null);
-        ProductoDTO producto = ProductoMapper.toDTO(
+        ProductoDTO producto = productoMapper.toDTO(
             productoService.crearProducto(
-                ProductoMapper.toEntity(productoDTO), productoDTO.getCuentaId()
+                productoMapper.toEntity(productoDTO), productoDTO.getCuentaId()
             )
         );
         URI uri = builder

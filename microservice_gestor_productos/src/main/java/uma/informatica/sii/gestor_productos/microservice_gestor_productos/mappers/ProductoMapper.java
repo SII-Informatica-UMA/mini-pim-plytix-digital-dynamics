@@ -10,11 +10,14 @@ import org.springframework.stereotype.Component;
 import java.util.Set;
 @Component
 public class ProductoMapper {
-
-    @Autowired
-    private static RelacionMapper relacionMapper;
     
-        public static ProductoDTO toDTO(Producto producto) {
+    private final RelacionMapper relacionMapper;
+
+    public ProductoMapper(RelacionMapper relacionMapper) {
+        this.relacionMapper = relacionMapper;
+    }
+    
+        public ProductoDTO toDTO(Producto producto) {
             ProductoDTO dto = new ProductoDTO();
             dto.setId(producto.getId());
             dto.setGtin(producto.getGtin());
@@ -73,7 +76,7 @@ public class ProductoMapper {
     
         }
         
-        public static Producto toEntity(ProductoDTO dto) {
+        public Producto toEntity(ProductoDTO dto) {
             if (dto == null) return null;
     
             Producto producto = new Producto();
@@ -118,15 +121,21 @@ public class ProductoMapper {
 
                 rp.setTipoRelacion(tipoRelacion);
 
-                // Setear los productos de origen y destino
-                Producto productoOrigen = new Producto();
-                productoOrigen.setId(rpDto.getIdProductoOrigen());
-
-                Producto productoDestino = new Producto();
-                productoDestino.setId(rpDto.getIdProductoDestino());
-
-                rp.setProductoOrigen(productoOrigen);
-                rp.setProductoDestino(productoDestino);
+                if (rpDto.getIdProductoOrigen() != null && rpDto.getIdProductoOrigen() > 0) {
+                    Producto productoOrigen = new Producto();
+                    productoOrigen.setId(rpDto.getIdProductoOrigen());
+                    rp.setProductoOrigen(productoOrigen);
+                } else {
+                    rp.setProductoOrigen(null); // Por si acaso
+                }
+                
+                if (rpDto.getIdProductoDestino() != null && rpDto.getIdProductoDestino() > 0) {
+                    Producto productoDestino = new Producto();
+                    productoDestino.setId(rpDto.getIdProductoDestino());
+                    rp.setProductoDestino(productoDestino);
+                } else {
+                    rp.setProductoDestino(null); // ← aquí está el problema más común
+                }
 
                 return rp;
             })

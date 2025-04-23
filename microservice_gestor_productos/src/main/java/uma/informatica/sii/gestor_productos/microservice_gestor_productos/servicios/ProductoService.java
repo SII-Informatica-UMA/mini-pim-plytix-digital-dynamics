@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,12 +35,16 @@ public class ProductoService {
     private final ProductoRepository productoRepository;
     private final UsuarioService usuarioService;
     private final CategoriaRepository categoriaRepository;
+    private final ProductoMapper productoMapper;
 
-    public ProductoService(ProductoRepository productoRepository, UsuarioService usuarioService, CategoriaRepository categoriaRepository) {
+    @Autowired
+    public ProductoService(ProductoRepository productoRepository, UsuarioService usuarioService, CategoriaRepository categoriaRepository, ProductoMapper productoMapper) {
         this.productoRepository = productoRepository;
         this.usuarioService = usuarioService;
         this.categoriaRepository = categoriaRepository;
+        this.productoMapper = productoMapper;
     }
+
 
     public ProductoDTO getProductoPorId(Integer idProducto, String jwtToken) {
         Optional<Producto> producto = productoRepository.findById(idProducto);
@@ -57,7 +62,7 @@ public class ProductoService {
             throw new SinPermisosSuficientes();
         }
     
-        return ProductoMapper.toDTO(productoExistente);
+        return productoMapper.toDTO(productoExistente);
     }
     
 
@@ -80,7 +85,7 @@ public class ProductoService {
             throw new SinPermisosSuficientes();
         }
     
-        return ProductoMapper.toDTO(productoExistente);
+        return productoMapper.toDTO(productoExistente);
     }
     
 
@@ -156,7 +161,7 @@ public class ProductoService {
     
         Producto actualizado = productoRepository.save(producto);
     
-        return ProductoMapper.toDTO(actualizado);
+        return productoMapper.toDTO(actualizado);
     }
     
 

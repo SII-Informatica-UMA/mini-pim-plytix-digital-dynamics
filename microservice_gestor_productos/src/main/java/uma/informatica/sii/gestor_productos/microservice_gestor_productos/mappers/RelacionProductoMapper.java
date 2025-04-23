@@ -12,15 +12,22 @@ public class RelacionProductoMapper {
     public static RelacionProducto toEntity(RelacionProductoDTO dto) {
         RelacionProducto entity = new RelacionProducto();
         
-        // Asignamos las entidades productoOrigen y productoDestino
-        Producto productoOrigen = new Producto();
-        productoOrigen.setId(dto.getIdProductoOrigen());
 
-        Producto productoDestino = new Producto();
-        productoDestino.setId(dto.getIdProductoDestino());
-
-        entity.setProductoOrigen(productoOrigen);
-        entity.setProductoDestino(productoDestino);
+        if (dto.getIdProductoOrigen() != null && dto.getIdProductoOrigen() > 0) {
+            Producto productoOrigen = new Producto();
+            productoOrigen.setId(dto.getIdProductoOrigen());
+            entity.setProductoOrigen(productoOrigen);
+        } else {
+            entity.setProductoOrigen(null); // Por si acaso
+        }
+        
+        if (dto.getIdProductoDestino() != null && dto.getIdProductoDestino() > 0) {
+            Producto productoDestino = new Producto();
+            productoDestino.setId(dto.getIdProductoDestino());
+            entity.setProductoDestino(productoDestino);
+        } else {
+            entity.setProductoDestino(null); // ← aquí está el problema más común
+        }
 
         // Asignamos la relación
         Relacion tipoRelacion = new Relacion();

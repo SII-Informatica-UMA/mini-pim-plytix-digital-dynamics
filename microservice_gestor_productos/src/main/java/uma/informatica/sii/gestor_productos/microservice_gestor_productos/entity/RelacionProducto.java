@@ -8,11 +8,11 @@ public class RelacionProducto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = true)
     @JoinColumn(name = "producto_origen_id", foreignKey = @ForeignKey(name = "FK_relacion_producto_origen"))
     private Producto productoOrigen;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = true)
     @JoinColumn(name = "producto_destino_id", foreignKey = @ForeignKey(name = "FK_relacion_producto_destino"))
     private Producto productoDestino;
 
