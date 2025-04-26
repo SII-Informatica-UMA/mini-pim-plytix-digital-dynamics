@@ -8,9 +8,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.*;
 
 
-public interface ProductoRepository extends JpaRepository<Producto, Long> {
-    //Obtener Producto por id
-    Optional<Producto> findById(Integer id);
+public interface ProductoRepository extends JpaRepository<Producto, Integer> {
     // Seleccionar Producto por cuentaId
     List<Producto> findByCuentaId(Integer cuentaId);
     // Obtener productos de una categoría
@@ -18,11 +16,4 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     List<Producto> findProductosByCategoriaId(Integer categoriaId);
     // Seleccionar Producto por gtin 
     Optional<Producto> findByGtin(String gtin);
-
-	//Crear Producto y modificarlo
-    <S extends Producto> S save(S producto);
-    
-	//Eliminar Producto por id
-    void deleteById(Integer id);
-
 } 

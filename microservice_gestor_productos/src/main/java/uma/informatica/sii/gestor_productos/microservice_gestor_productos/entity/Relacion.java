@@ -7,7 +7,6 @@ import java.util.Objects;
 public class Relacion {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(nullable = false)
@@ -49,4 +48,6 @@ public class Relacion {
     public void setNombre(String nombre) { this.nombre = nombre; }    
     public String getDescripcion() { return descripcion; }    
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }    
+    public Integer getCuentaId() { return cuentaId; }
+    public void setCuentaId(Integer cuentaId) { this.cuentaId = cuentaId; }
 }

@@ -158,15 +158,16 @@ public class ProductoService {
 
     
         Set<Categoria> categorias = productoDTO.getCategorias().stream()
-                .map(CategoriaMapper::toEntity) 
-                .collect(Collectors.toSet());
-        producto.setCategorias(categorias);
+        .map(dto -> categoriaRepository.findById(dto.getId())
+            .orElseThrow(() -> new EntidadNoExistente()))
+            .collect(Collectors.toSet());
 
         Set<RelacionProducto> relaciones = productoDTO.getRelaciones().stream()
                 .map(RelacionProductoMapper::toEntity)
                 .collect(Collectors.toSet());
 
-        producto.setRelacionesDestino(relaciones);
+        producto.getRelacionesDestino().clear();
+        producto.getRelacionesDestino().addAll(relaciones);
 
         // añadir los atributos
         Set<Atributo> atributos = productoDTO.getAtributos().stream()
@@ -191,7 +192,9 @@ public class ProductoService {
     
         UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
             .orElseThrow(() -> new EntidadNoExistente());
+        System.out.println("Usuario: ");
         if(!usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken)){
+            System.out.println("Usuario no pertenece a la cuenta");
             throw new SinPermisosSuficientes();
         }
     
@@ -207,15 +210,17 @@ public class ProductoService {
         // 	Sin permisos suficientes. También se puede dar este código si ya hay otro producto con el mismo GTIN.
         
         if (productoRepository.findByGtin(productoDTO.getGtin()).isPresent()) {
+            System.out.println("El GTIN ya existe");
             throw new SinPermisosSuficientes();
         }
         // comprobar que no se exceden los límites fijados por el plan de la cuenta
         int productosActuales = productoRepository.findByCuentaId(idCuenta).size();
         if (!cuentaService.puedeCrearProducto(Long.valueOf(idCuenta), productosActuales)) {
+            System.out.println("No se puede crear el producto");
             throw new SinPermisosSuficientes();
         }
         // crear el producto
-        producto.setId(null);
+        producto.setId(productoDTO.getId());
         producto.setGtin(productoDTO.getGtin());
         producto.setSku(productoDTO.getSku());
         producto.setNombre(productoDTO.getNombre());
@@ -226,13 +231,16 @@ public class ProductoService {
 
         // añadir las categorías
         Set<Categoria> categorias = productoDTO.getCategorias().stream()
-                .map(CategoriaMapper::toEntity) 
-                .collect(Collectors.toSet());
+            .map(dto -> categoriaRepository.findById(dto.getId())
+            .orElseThrow(() -> new EntidadNoExistente()))
+            .collect(Collectors.toSet());
+        System.out.println("Categorias");
         producto.setCategorias(categorias);
         // añadir las relaciones origen y destino
         for (RelacionProductoDTO relacionDTO : productoDTO.getRelaciones()) {
             Integer tipoRelacionId = relacionDTO.getRelacion().getId(); // o lo que uses en el DTO
                 if (!relacionRepository.existsById(tipoRelacionId)) {
+                    System.out.println("La relación no existe");
                     throw new EntidadNoExistente();
                 }
         }
@@ -253,9 +261,15 @@ public class ProductoService {
         return nuevoProducto;
     }
 
-    public void eliminarProducto(Integer id) {
+    public void eliminarProducto(Integer id, String jwtToken) {
         Optional<Producto> productoOptional = productoRepository.findById(id);
         if (productoOptional.isPresent()) {
+            // Solo lo puede hacer un usuario que tenga acceso a la cuenta donde se encuentra el producto.
+            UsuarioDTO usuario = usuarioService.getUsuarioConectado(jwtToken)
+                    .orElseThrow(CredencialesNoValidas::new);
+            if(!usuarioService.usuarioPerteneceACuenta(usuario.getCuentaId(), usuario.getId(), jwtToken)){
+                throw new SinPermisosSuficientes();
+            }
             productoRepository.deleteById(id);
         } else {
             throw new EntidadNoExistente();

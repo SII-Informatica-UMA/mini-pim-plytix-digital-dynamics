@@ -1,0 +1,154 @@
+package uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Relacion;
+
+import java.util.Optional;
+
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.CredencialesNoValidas;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.EntidadNoExistente;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.SinPermisosSuficientes;
+import org.springframework.beans.factory.annotation.Autowired;
+
+
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.RelacionMapper;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.*;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
+
+@Service
+public class RelacionService {
+
+    @Value("${servicio.usuarios.baseurl}")
+    private String baseUrl;
+
+    private final RelacionRepository relacionRepository;
+    private final UsuarioService usuarioService;
+    private final RelacionMapper relacionMapper;
+    private final CuentaService cuentaService;
+
+    @Autowired
+    public RelacionService(RelacionRepository relacionRepository, RelacionMapper relacionMapper, UsuarioService usuarioService, CuentaService cuentaService) {
+        this.relacionRepository = relacionRepository;
+        this.relacionMapper = relacionMapper;
+        this.usuarioService = usuarioService;
+        this.cuentaService = cuentaService;
+    }
+
+    public RelacionDTO getRelacionPorId(Integer idRelacion, String jwtToken) {
+        Optional<Relacion> relacion = relacionRepository.findById(idRelacion);
+        if (relacion.isEmpty()) {
+            throw new EntidadNoExistente();
+        }
+        Relacion relacionExistente = relacion.get();
+        Integer idCuenta = relacionExistente.getCuentaId();
+
+        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
+                .map(UsuarioDTO::getId)
+                .orElseThrow(() -> new CredencialesNoValidas());
+
+        if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
+            throw new SinPermisosSuficientes();
+        }
+
+        return relacionMapper.toDTO(relacionExistente);
+    }
+
+    public List<Relacion> getRelacionesPorIdCuenta(Integer idCuenta, String jwtToken) {
+        Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
+                .map(UsuarioDTO::getId)
+                .orElseThrow(CredencialesNoValidas::new);
+
+        UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
+                .orElseThrow(() -> new EntidadNoExistente());
+
+        if (!usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR)) {
+            boolean pertenece = usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken);
+            if (!pertenece) {
+                throw new SinPermisosSuficientes();
+            }
+        }
+
+        return relacionRepository.findAllByCuentaId(idCuenta);
+    }
+
+    public Relacion crearRelacion(RelacionDTO relacionDTO, Integer idCuenta, String jwtToken) {
+
+        Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
+            .map(UsuarioDTO::getId)
+            .orElseThrow(CredencialesNoValidas::new);
+    
+        UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
+            .orElseThrow(() -> new EntidadNoExistente());
+        if(!usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken)){
+            throw new SinPermisosSuficientes();
+        }
+    
+        Relacion relacion = relacionMapper.toEntity(relacionDTO);
+        
+        if (relacionRepository.findById(relacionDTO.getId()).isPresent()) {
+            throw new SinPermisosSuficientes();
+        }
+
+        int relacionesActuales = relacionRepository.findAllByCuentaId(idCuenta).size();
+        if (!cuentaService.puedeCrearProducto(Long.valueOf(idCuenta), relacionesActuales)) {
+            throw new EntidadNoExistente();
+        }
+
+        relacion.setId(relacionDTO.getId());
+        relacion.setNombre(relacionDTO.getNombre());
+        relacion.setDescripcion(relacionDTO.getDescripcion());
+        relacion.setCuentaId(idCuenta);
+
+        Relacion nuevaRelacion = relacionRepository.save(relacion);
+
+        return nuevaRelacion;
+    }
+
+    public RelacionDTO actualizarRelacion(Integer idRelacion, RelacionDTO relacionDTO, String jwtToken) {
+        Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
+            .map(UsuarioDTO::getId)
+            .orElseThrow(CredencialesNoValidas::new);
+    
+        UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
+            .orElseThrow(() -> new EntidadNoExistente());
+    
+        Relacion relacion = relacionRepository.findById(idRelacion)
+            .orElseThrow(() -> new EntidadNoExistente());
+    
+        if(!usuarioService.usuarioPerteneceACuenta(relacion.getCuentaId(), usuario.getId(), jwtToken)){
+            throw new SinPermisosSuficientes();
+        }
+    
+        relacion.setNombre(relacionDTO.getNombre());
+        relacion.setDescripcion(relacionDTO.getDescripcion());
+
+        Relacion actualizado = relacionRepository.save(relacion);
+        
+        return relacionMapper.toDTO(actualizado);
+    }
+
+    //Falta condicion usuario asociado a cuenta
+    public void eliminarRelacion(Integer id, String jwtToken) {
+        Optional<Relacion> relacionOptional = relacionRepository.findById(id);
+        if (relacionOptional.isPresent()) {
+            Relacion relacion = relacionOptional.get();
+            Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
+                .map(UsuarioDTO::getId)
+                .orElseThrow(() -> new CredencialesNoValidas());
+    
+            if (!usuarioService.usuarioPerteneceACuenta(relacion.getCuentaId(), idUsuario, jwtToken)) {
+                throw new SinPermisosSuficientes();
+            }
+
+            relacionRepository.deleteById(id);
+        } else {
+            throw new EntidadNoExistente();
+        }
+    }
+}
+   
