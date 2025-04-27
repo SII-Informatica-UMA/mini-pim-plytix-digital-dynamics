@@ -14,7 +14,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/categoria")  // singular for spec compliance
+@RequestMapping("/categoria")
 public class CategoriaController {
 
     private final CategoriaService categoriaService;
@@ -25,14 +25,11 @@ public class CategoriaController {
 
     @GetMapping
     public ResponseEntity<?> getCategoria(
-            @RequestParam(required = true) Integer idCategoria,
+            @RequestParam Integer idCategoria,
+            @RequestParam Integer cuentaId,
             @RequestHeader("Authorization") String jwtToken) {
 
-        if (idCategoria == null) {
-            return ResponseEntity.badRequest().body("Se debe proporcionar idCategoria.");
-        }
-
-        return ResponseEntity.ok(categoriaService.getCategoriaById(idCategoria, jwtToken));
+        return ResponseEntity.ok(categoriaService.getCategoriaByIdAndCuenta(idCategoria, cuentaId, jwtToken));
     }
 
     @PostMapping
@@ -44,6 +41,15 @@ public class CategoriaController {
         CategoriaDTO nueva = categoriaService.crearCategoria(dto, jwtToken);
         URI uri = builder.path("/categoria/{id}").buildAndExpand(nueva.getId()).toUri();
         return ResponseEntity.created(uri).body(nueva);
+    }
+
+    @PutMapping("/{idCategoria}")
+    public ResponseEntity<CategoriaDTO> modificarCategoria(
+            @PathVariable Integer idCategoria,
+            @RequestBody CategoriaDTO dto,
+            @RequestHeader("Authorization") String jwtToken) {
+
+        return ResponseEntity.ok(categoriaService.modificarCategoria(idCategoria, dto, jwtToken));
     }
 
     @DeleteMapping("/{idCategoria}")

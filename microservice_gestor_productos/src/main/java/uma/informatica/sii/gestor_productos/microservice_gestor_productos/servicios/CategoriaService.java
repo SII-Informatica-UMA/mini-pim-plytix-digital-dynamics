@@ -3,13 +3,12 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.servi
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioService;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.CategoriaMapper;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.EntidadNoExistente;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.CategoriaMapper;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
 
 import java.util.Optional;
@@ -25,18 +24,20 @@ public class CategoriaService {
         this.usuarioService = usuarioService;
     }
 
-    public CategoriaDTO getCategoriaById(Integer idCategoria, String jwtToken) {
+    public CategoriaDTO getCategoriaByIdAndCuenta(Integer idCategoria, Integer cuentaId, String jwtToken) {
         Categoria categoria = categoriaRepository.findById(idCategoria)
                 .orElseThrow(EntidadNoExistente::new);
 
-        Integer idCuenta = categoria.getCuentaId();
+        if (!categoria.getCuentaId().equals(cuentaId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: la categoría no pertenece a la cuenta proporcionada.");
+        }
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
 
-        if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: la categoría no pertenece a tu cuenta.");
+        if (!usuarioService.usuarioPerteneceACuenta(cuentaId, idUsuario, jwtToken)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: el usuario no pertenece a la cuenta.");
         }
 
         return CategoriaMapper.toDTO(categoria);
@@ -50,7 +51,6 @@ public class CategoriaService {
 
         Categoria nueva = CategoriaMapper.toEntity(dto);
 
-        // Obtener cuentaId a partir del usuario autenticado
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
@@ -62,17 +62,33 @@ public class CategoriaService {
         return CategoriaMapper.toDTO(guardada);
     }
 
-    public void eliminarCategoria(Integer idCategoria, String jwtToken) {
+    public CategoriaDTO modificarCategoria(Integer idCategoria, CategoriaDTO dto, String jwtToken) {
         Categoria categoria = categoriaRepository.findById(idCategoria)
                 .orElseThrow(EntidadNoExistente::new);
-
-        Integer idCuenta = categoria.getCuentaId();
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
 
-        if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
+        if (!usuarioService.usuarioPerteneceACuenta(categoria.getCuentaId(), idUsuario, jwtToken)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: no puedes modificar esta categoría.");
+        }
+
+        categoria.setNombre(dto.getNombre());
+
+        Categoria guardada = categoriaRepository.save(categoria);
+        return CategoriaMapper.toDTO(guardada);
+    }
+
+    public void eliminarCategoria(Integer idCategoria, String jwtToken) {
+        Categoria categoria = categoriaRepository.findById(idCategoria)
+                .orElseThrow(EntidadNoExistente::new);
+
+        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
+                .map(UsuarioDTO::getId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+
+        if (!usuarioService.usuarioPerteneceACuenta(categoria.getCuentaId(), idUsuario, jwtToken)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: no puedes eliminar esta categoría.");
         }
 
