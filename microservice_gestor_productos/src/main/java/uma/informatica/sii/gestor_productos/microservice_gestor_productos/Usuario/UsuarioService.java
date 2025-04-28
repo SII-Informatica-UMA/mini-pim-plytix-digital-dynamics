@@ -51,19 +51,16 @@ public class UsuarioService {
         }
     }
 
-    public Integer getCuentaIdDelUsuario(Long usuarioId, String jwtToken) {
-        return getUsuarioConectado(jwtToken)
-                .map(UsuarioDTO::getCuentaId)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
-    }
-
     public Optional<UsuarioDTO> getUsuarioConectado(String jwtToken) {
-        UsuarioDTO mock = new UsuarioDTO();
-        mock.setId(1L); // Must match the JWT you use
-        mock.setCuentaId(1); // Must match Categoria.cuentaId
-        mock.setNombre("Admin Local");
-        mock.setRole(Usuario.Rol.ADMINISTRADOR);
-        return Optional.of(mock);
+        var peticion = RequestEntity.get(baseUrl + "/usuario")
+            .header("Authorization", "Bearer " +  jwtToken)
+            .build();
+        System.out.println("Peticion: " + peticion);
+        try {
+            return Optional.of(restTemplate.exchange(peticion, UsuarioDTO[].class).getBody()[0]);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 
     public boolean usuarioPerteneceACuenta(Integer idCuenta, Long idUsuario, String jwtTokenDelUsuario) {
@@ -73,16 +70,16 @@ public class UsuarioService {
     //    .fromUriString(baseUrl + "/cuenta/{idCuenta}/usuarios")
     //    .buildAndExpand(idCuenta)
     //    .toUri();
-//
+    //
     //// Crear la petición con el JWT del usuario
     //var peticion = RequestEntity
     //    .get(uri)
     //    .header("Authorization", "Bearer " + jwtTokenDelUsuario)
     //    .build();
-//
+    //
     //try {
     //    ResponseEntity<UsuarioDTO[]> respuesta = restTemplate.exchange(peticion, UsuarioDTO[].class);
-//
+    //
     //    if (respuesta.getStatusCode().is2xxSuccessful() && respuesta.getBody() != null) {
     //        return Arrays.stream(respuesta.getBody())
     //            .anyMatch(usuario -> usuario.getId().equals(idUsuario));

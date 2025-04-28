@@ -25,21 +25,21 @@ import org.springframework.web.bind.annotation.*;
 public class ProductoController {
     private final ProductoService productoService;
     private final ProductoMapper productoMapper;
-    private final ProductoRepository productoRepository;
-    public ProductoController(ProductoService productoService, ProductoMapper productoMapper, ProductoRepository productoRepository) {
+    // private final ProductoRepository productoRepository;
+    public ProductoController(ProductoService productoService, ProductoMapper productoMapper) {
         this.productoService = productoService;
         this.productoMapper = productoMapper;
-        this.productoRepository = productoRepository;
     }
 
     @GetMapping
     public ResponseEntity<?> getProducto(
             @RequestParam(required = false) Integer idProducto,
-            @RequestParam(required = false) String gtin,
             @RequestParam(required = false) Integer idCuenta,
             @RequestParam(required = false) Integer idCategoria,
-            @RequestHeader("Authorization") String jwtToken) {
-
+            @RequestParam(required = false) String gtin,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
         int count = 0;
         if (idProducto != null) count++;
         if (gtin != null) count++;
@@ -71,7 +71,8 @@ public class ProductoController {
 
 
     @PostMapping
-    public ResponseEntity<ProductoDTO> crearProducto(@RequestBody ProductoDTO productoDTO,@RequestParam  Integer cuentaId, @RequestHeader("Authorization") String authorizationHeader,UriComponentsBuilder builder) {
+    public ResponseEntity<ProductoDTO> crearProducto(@RequestBody ProductoDTO productoDTO,@RequestParam  Integer cuentaId, 
+            @RequestHeader("Authorization") String authorizationHeader,UriComponentsBuilder builder) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         ProductoDTO producto = productoMapper.toDTO(
             productoService.crearProducto(productoDTO,cuentaId,jwtToken)
@@ -95,7 +96,8 @@ public class ProductoController {
     }
     
     @DeleteMapping("/{idProducto}")
-    public ResponseEntity<Void> eliminarProducto(@PathVariable Integer idProducto, @RequestHeader("Authorization") String jwtToken) {
+    public ResponseEntity<Void> eliminarProducto(@PathVariable Integer idProducto, @RequestHeader("Authorization") String authorizationHeader) {
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
         productoService.eliminarProducto(idProducto, jwtToken);
         return ResponseEntity.noContent().build();
     }
