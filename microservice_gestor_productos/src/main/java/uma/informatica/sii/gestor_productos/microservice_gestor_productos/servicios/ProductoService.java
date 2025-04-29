@@ -244,9 +244,10 @@ public class ProductoService {
                     throw new EntidadNoExistente();
                 }
         }
+
         Set<RelacionProducto> relaciones = productoDTO.getRelaciones().stream()
-                .map(RelacionProductoMapper::toEntity)
-                .collect(Collectors.toSet());
+            .map(RelacionProductoMapper::toEntity)
+            .collect(Collectors.toSet());
         producto.setRelacionesDestino(relaciones);
         
         // añadir los atributos

@@ -17,7 +17,7 @@ public class RelacionProducto {
     private Producto productoDestino;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "tipo_relacion_id", foreignKey = @ForeignKey(name = "FK_relacion_producto_tipo"))
+    @JoinColumn(name = "tipo_relacion_id", foreignKey = @ForeignKey(name = "FK_relacion_producto_tipo"), nullable = true)
     private Relacion tipoRelacion;
 
     // Equals y HashCode

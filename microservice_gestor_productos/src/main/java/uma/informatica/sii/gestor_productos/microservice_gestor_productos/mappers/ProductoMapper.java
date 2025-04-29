@@ -50,10 +50,7 @@ public class ProductoMapper {
                     
             // Relación
             dto.setRelaciones(
-                Stream.concat(
-                    producto.getRelacionesOrigen().stream(),
-                    producto.getRelacionesDestino().stream()
-                )
+                producto.getRelacionesOrigen().stream()
                 .map(rp -> {
                     RelacionProductoDTO rpDto = new RelacionProductoDTO();
             
@@ -64,15 +61,20 @@ public class ProductoMapper {
                     relDto.setDescripcion(rp.getTipoRelacion().getDescripcion());
             
                     rpDto.setRelacion(relDto);
-                    rpDto.setIdProductoOrigen(rp.getProductoOrigen().getId());
-                    rpDto.setIdProductoDestino(rp.getProductoDestino().getId());
+
+                    rpDto.setIdProductoOrigen(
+                        rp.getProductoOrigen() != null ? rp.getProductoOrigen().getId() : null
+                    );
+                    rpDto.setIdProductoDestino(
+                        rp.getProductoDestino() != null ? rp.getProductoDestino().getId() : null
+                    );
             
                     return rpDto;
                 })
                 .collect(Collectors.toSet())
             );
             
-            dto.setCuentaId(producto.getCuentaId());
+            //dto.setCuentaId(producto.getCuentaId());
     
             return dto;
     
@@ -153,22 +155,20 @@ public class ProductoMapper {
 
                 rp.setTipoRelacion(tipoRelacion);
 
-                // Setear los productos de origen y destino
-                Producto productoOrigen = new Producto();
-                productoOrigen.setId(rpDto.getIdProductoDestino());  // Aquí se invierten los productos para destino
-
-                Producto productoDestino = new Producto();
-                productoDestino.setId(rpDto.getIdProductoOrigen());
-
-                rp.setProductoOrigen(productoOrigen);
-                rp.setProductoDestino(productoDestino);
+                if (rpDto.getIdProductoDestino() != null && rpDto.getIdProductoDestino() > 0) {
+                    Producto productoDestino = new Producto();
+                    productoDestino.setId(rpDto.getIdProductoDestino());
+                    rp.setProductoDestino(productoDestino);
+                } else {
+                    rp.setProductoDestino(null); // Por si acaso
+                }
 
                 return rp;
             })
             .collect(Collectors.toSet())
         );
         
-        producto.setCuentaId(dto.getCuentaId());
+        //producto.setCuentaId(dto.getCuentaId());
         
         return producto;
     }
