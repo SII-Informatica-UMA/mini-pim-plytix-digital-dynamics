@@ -59,7 +59,8 @@ public class RelacionController {
     }
 
     @PostMapping
-    public ResponseEntity<RelacionDTO> crearRelacion(@RequestBody RelacionDTO relacionDTO,@RequestParam Integer cuentaId, @RequestHeader("Authorization") String authorizationHeader,UriComponentsBuilder builder) {
+    public ResponseEntity<RelacionDTO> crearRelacion(@RequestBody RelacionDTO relacionDTO,
+    @RequestParam Integer cuentaId, @RequestHeader("Authorization") String authorizationHeader,UriComponentsBuilder builder) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         RelacionDTO relacion = relacionMapper.toDTO(
             relacionService.crearRelacion(relacionDTO,cuentaId,jwtToken)

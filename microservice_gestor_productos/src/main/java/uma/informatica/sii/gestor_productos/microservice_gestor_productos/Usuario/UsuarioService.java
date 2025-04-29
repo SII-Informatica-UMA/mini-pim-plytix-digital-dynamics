@@ -50,12 +50,6 @@ public class UsuarioService {
         }
     }
 
-    //public Integer getCuentaIdDelUsuario(Long usuarioId, String jwtToken) {
-    //    return getUsuarioConectado(jwtToken)
-    //            .map(UsuarioDTO::getCuentaId)
-    //            .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
-    //}
-
     public Optional<UsuarioDTO> getUsuarioConectado(String jwtToken) {
         var peticion = RequestEntity.get(baseUrl + "/usuario")
             .header("Authorization", "Bearer " +  jwtToken)
@@ -75,16 +69,16 @@ public class UsuarioService {
     //    .fromUriString(baseUrl + "/cuenta/{idCuenta}/usuarios")
     //    .buildAndExpand(idCuenta)
     //    .toUri();
-//
+    //
     //// Crear la petición con el JWT del usuario
     //var peticion = RequestEntity
     //    .get(uri)
     //    .header("Authorization", "Bearer " + jwtTokenDelUsuario)
     //    .build();
-//
+    //
     //try {
     //    ResponseEntity<UsuarioDTO[]> respuesta = restTemplate.exchange(peticion, UsuarioDTO[].class);
-//
+    //
     //    if (respuesta.getStatusCode().is2xxSuccessful() && respuesta.getBody() != null) {
     //        return Arrays.stream(respuesta.getBody())
     //            .anyMatch(usuario -> usuario.getId().equals(idUsuario));

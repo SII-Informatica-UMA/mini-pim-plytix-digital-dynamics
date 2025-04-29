@@ -20,8 +20,8 @@ public class ProductoDTO {
     private LocalDateTime creado;
     private LocalDateTime modificado;
     private String miniatura;
-    //@JsonIgnore
-    //private Integer cuentaId;
+    @JsonIgnore
+    private Integer cuentaId;
     private Set<AtributoDTO> atributos;
     private Set<CategoriaDTO> categorias;
     private Set<RelacionProductoDTO> relaciones;
