@@ -5,10 +5,7 @@ import org.springframework.http.RequestEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
-
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.security.JwtUtil;
-
-import java.util.Arrays;
 import java.util.Optional;
 
 @Service

@@ -58,18 +58,17 @@ public class CuentaService {
     public boolean puedeCrearProducto(Long cuentaId, int productosActuales) {
         return getCuentaPorId(cuentaId)
                 .map(cuenta -> productosActuales < cuenta.getPlan().getMaxProductos())
-                .orElse(false); // Si no puede obtener la cuenta, asumimos que no puede crear
+                .orElse(false);
     }
-
     public boolean puedeCrearRelacion(Long cuentaId, int relacionesActuales) {
         return getCuentaPorId(cuentaId)
                 .map(cuenta -> relacionesActuales < cuenta.getPlan().getMaxRelaciones())
-                .orElse(false); // Si no puede obtener la cuenta, asumimos que no puede crear
+                .orElse(false);
     }
-
     public boolean puedeCrearCategoria(Long cuentaId, int categoriasActuales) {
         return getCuentaPorId(cuentaId)
                 .map(cuenta -> categoriasActuales < cuenta.getPlan().getMaxCategoriasActivos())
-                .orElse(false); // Si no puede obtener la cuenta, asumimos que no puede crear
+                .orElse(false); 
     }
+    
 }

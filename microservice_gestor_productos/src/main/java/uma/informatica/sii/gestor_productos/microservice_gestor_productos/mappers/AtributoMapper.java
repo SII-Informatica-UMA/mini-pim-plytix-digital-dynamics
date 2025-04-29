@@ -1,7 +1,6 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers;
 
 import org.springframework.stereotype.Component;
-
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.AtributoDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Atributo;
 
