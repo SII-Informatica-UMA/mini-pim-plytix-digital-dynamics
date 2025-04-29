@@ -27,7 +27,16 @@ public class ProductoMapper {
             dto.setCreado(producto.getCreado());
             dto.setModificado(producto.getModificado());
             dto.setMiniatura(producto.getMiniatura());
-    
+            
+            // Atributos
+            dto.setAtributos(producto.getAtributos().stream()
+            .map(attr -> {
+                AtributoDTO a = new AtributoDTO();
+                a.setNombre(attr.getNombre());
+                a.setValor(attr.getValor());
+                return a;
+            }).collect(Collectors.toSet()));
+
             // Categorías
             dto.setCategorias(
                 producto.getCategorias().stream()
@@ -38,7 +47,8 @@ public class ProductoMapper {
                         return cdto;
                     }).collect(Collectors.toSet())
             );
-    
+                    
+            // Relación
             dto.setRelaciones(
                 Stream.concat(
                     producto.getRelacionesOrigen().stream(),
@@ -62,14 +72,6 @@ public class ProductoMapper {
                 .collect(Collectors.toSet())
             );
             
-            dto.setAtributos(producto.getAtributos().stream()
-            .map(attr -> {
-                AtributoDTO a = new AtributoDTO();
-                a.setNombre(attr.getNombre());
-                a.setValor(attr.getValor());
-                return a;
-            }).collect(Collectors.toSet()));
-    
             dto.setCuentaId(producto.getCuentaId());
     
             return dto;

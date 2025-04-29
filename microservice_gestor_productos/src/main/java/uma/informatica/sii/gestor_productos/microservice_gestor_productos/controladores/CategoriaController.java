@@ -27,18 +27,21 @@ public class CategoriaController {
     public ResponseEntity<?> getCategoria(
             @RequestParam Integer idCategoria,
             @RequestParam Integer cuentaId,
-            @RequestHeader("Authorization") String jwtToken) {
-
+            @RequestHeader("Authorization") String authorizationHeader) {
+        
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
         return ResponseEntity.ok(categoriaService.getCategoriaByIdAndCuenta(idCategoria, cuentaId, jwtToken));
     }
 
     @PostMapping
     public ResponseEntity<CategoriaDTO> crearCategoria(
             @RequestBody CategoriaDTO dto,
-            @RequestHeader("Authorization") String jwtToken,
+            @RequestParam Integer idCuenta,
+            @RequestHeader("Authorization") String authorizationHeader,
             UriComponentsBuilder builder) {
-
-        CategoriaDTO nueva = categoriaService.crearCategoria(dto, jwtToken);
+        
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
+        CategoriaDTO nueva = categoriaService.crearCategoria(dto, idCuenta,jwtToken);
         URI uri = builder.path("/categoria/{id}").buildAndExpand(nueva.getId()).toUri();
         return ResponseEntity.created(uri).body(nueva);
     }
@@ -47,16 +50,18 @@ public class CategoriaController {
     public ResponseEntity<CategoriaDTO> modificarCategoria(
             @PathVariable Integer idCategoria,
             @RequestBody CategoriaDTO dto,
-            @RequestHeader("Authorization") String jwtToken) {
-
+            @RequestHeader("Authorization") String authorizationHeader) {
+        
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
         return ResponseEntity.ok(categoriaService.modificarCategoria(idCategoria, dto, jwtToken));
     }
 
     @DeleteMapping("/{idCategoria}")
     public ResponseEntity<Void> eliminarCategoria(
             @PathVariable Integer idCategoria,
-            @RequestHeader("Authorization") String jwtToken) {
-
+            @RequestHeader("Authorization") String authorizationHeader) {
+        
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
         categoriaService.eliminarCategoria(idCategoria, jwtToken);
         return ResponseEntity.noContent().build();
     }

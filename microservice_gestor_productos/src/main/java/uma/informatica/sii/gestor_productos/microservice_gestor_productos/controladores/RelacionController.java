@@ -36,8 +36,9 @@ public class RelacionController {
     public ResponseEntity<?> getRelacion(
             @RequestParam(required = false) Integer idRelacion,
             @RequestParam(required = false) Integer idCuenta,
-            @RequestHeader("Authorization") String jwtToken) {
-
+            @RequestHeader("Authorization") String authorizationHeader) {
+            
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
         int count = 0;
         if (idRelacion != null) count++;
         if (idCuenta != null) count++;
@@ -83,8 +84,9 @@ public class RelacionController {
     @DeleteMapping("/{idRelacion}")
     public ResponseEntity<Void> eliminarRelacion(
         @PathVariable Integer idRelacion,
-        @RequestHeader("Authorization") String jwtToken
+        @RequestHeader("Authorization") String authorizationHeader
         ) {
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
         relacionService.eliminarRelacion(idRelacion, jwtToken);
         return ResponseEntity.noContent().build();
     }

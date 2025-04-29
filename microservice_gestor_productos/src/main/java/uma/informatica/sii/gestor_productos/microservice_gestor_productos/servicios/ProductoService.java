@@ -267,7 +267,8 @@ public class ProductoService {
             // Solo lo puede hacer un usuario que tenga acceso a la cuenta donde se encuentra el producto.
             UsuarioDTO usuario = usuarioService.getUsuarioConectado(jwtToken)
                     .orElseThrow(CredencialesNoValidas::new);
-            if(!usuarioService.usuarioPerteneceACuenta(usuario.getCuentaId(), usuario.getId(), jwtToken)){
+            Integer idCuenta = productoOptional.get().getCuentaId();
+            if(!usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken)){
                 throw new SinPermisosSuficientes();
             }
             productoRepository.deleteById(id);

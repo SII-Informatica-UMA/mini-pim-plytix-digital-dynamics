@@ -8,6 +8,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuari
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.EntidadNoExistente;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.SinPermisosSuficientes;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.CategoriaMapper;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
 
@@ -43,7 +44,7 @@ public class CategoriaService {
         return CategoriaMapper.toDTO(categoria);
     }
 
-    public CategoriaDTO crearCategoria(CategoriaDTO dto, String jwtToken) {
+    public CategoriaDTO crearCategoria(CategoriaDTO dto, Integer idCuenta, String jwtToken) {
         Optional<Categoria> existente = categoriaRepository.findByNombre(dto.getNombre());
         if (existente.isPresent()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La categoría '" + dto.getNombre() + "' ya existe.");
@@ -55,9 +56,17 @@ public class CategoriaService {
                 .map(UsuarioDTO::getId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
 
-        Integer cuentaId = usuarioService.getCuentaIdDelUsuario(idUsuario, jwtToken);
-        nueva.setCuentaId(cuentaId);
+        UsuarioDTO usuario = usuarioService.getUsuario(idUsuario, jwtToken)
+                .orElseThrow(() -> new EntidadNoExistente());
+        
+        if(!usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken)){
+            throw new SinPermisosSuficientes();
+        }
 
+        nueva.setId(dto.getId());
+        nueva.setNombre(dto.getNombre());
+        nueva.setCuentaId(idCuenta);
+        
         Categoria guardada = categoriaRepository.save(nueva);
         return CategoriaMapper.toDTO(guardada);
     }

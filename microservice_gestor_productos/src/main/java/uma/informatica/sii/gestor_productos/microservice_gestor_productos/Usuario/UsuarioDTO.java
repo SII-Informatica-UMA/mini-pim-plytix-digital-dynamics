@@ -1,8 +1,10 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario;
 
-import lombok.Data;
+import lombok.*;
 
 @Data
+@Getter
+@Setter
 public class UsuarioDTO {
     private Long id;
     private String nombre;

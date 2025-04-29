@@ -38,8 +38,9 @@ public class ProductoController {
             @RequestParam(required = false) String gtin,
             @RequestParam(required = false) Integer idCuenta,
             @RequestParam(required = false) Integer idCategoria,
-            @RequestHeader("Authorization") String jwtToken) {
+            @RequestHeader("Authorization") String authorizationHeader) {
 
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
         int count = 0;
         if (idProducto != null) count++;
         if (gtin != null) count++;
@@ -95,7 +96,8 @@ public class ProductoController {
     }
     
     @DeleteMapping("/{idProducto}")
-    public ResponseEntity<Void> eliminarProducto(@PathVariable Integer idProducto, @RequestHeader("Authorization") String jwtToken) {
+    public ResponseEntity<Void> eliminarProducto(@PathVariable Integer idProducto, @RequestHeader("Authorization") String authorizationHeader) {
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
         productoService.eliminarProducto(idProducto, jwtToken);
         return ResponseEntity.noContent().build();
     }
