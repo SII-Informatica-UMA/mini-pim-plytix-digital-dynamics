@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class ProductoController {
     private final ProductoService productoService;
     private final ProductoMapper productoMapper;
-    // private final ProductoRepository productoRepository;
+    
     public ProductoController(ProductoService productoService, ProductoMapper productoMapper) {
         this.productoService = productoService;
         this.productoMapper = productoMapper;
@@ -71,11 +71,11 @@ public class ProductoController {
 
 
     @PostMapping
-    public ResponseEntity<ProductoDTO> crearProducto(@RequestBody ProductoDTO productoDTO,@RequestParam  Integer cuentaId, 
+    public ResponseEntity<ProductoDTO> crearProducto(@RequestBody ProductoDTO productoDTO,@RequestParam  Integer idCuenta, 
             @RequestHeader("Authorization") String authorizationHeader,UriComponentsBuilder builder) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         ProductoDTO producto = productoMapper.toDTO(
-            productoService.crearProducto(productoDTO,cuentaId,jwtToken)
+            productoService.crearProducto(productoDTO,idCuenta,jwtToken)
         );
         URI uri = builder
                 .path(String.format("/%d", productoDTO.getId()))

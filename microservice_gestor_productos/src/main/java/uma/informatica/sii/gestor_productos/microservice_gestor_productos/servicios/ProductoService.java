@@ -44,15 +44,17 @@ public class ProductoService {
     private final CuentaService cuentaService;
     private final RelacionRepository relacionRepository;
 
-    @Autowired
-    public ProductoService(ProductoRepository productoRepository, UsuarioService usuarioService, CategoriaRepository categoriaRepository, ProductoMapper productoMapper, CuentaService cuentaService, RelacionRepository relacionRepository) {
+
+    public ProductoService(ProductoRepository productoRepository, 
+    UsuarioService usuarioService, CategoriaRepository categoriaRepository, 
+    ProductoMapper productoMapper, CuentaService cuentaService, 
+    RelacionRepository relacionRepository) {
         this.productoRepository = productoRepository;
         this.usuarioService = usuarioService;
         this.categoriaRepository = categoriaRepository;
         this.productoMapper = productoMapper;
         this.cuentaService = cuentaService;
         this.relacionRepository = relacionRepository;
-
     }
 
 
@@ -75,26 +77,19 @@ public class ProductoService {
         return productoMapper.toDTO(productoExistente);
     }
     
-
     public ProductoDTO getProductoPorGtin(String gtin, String jwtToken) {
         Optional<Producto> producto = productoRepository.findByGtin(gtin);
-    
         if (producto.isEmpty()) {
             throw new EntidadNoExistente();
         }
-    
         Producto productoExistente = producto.get();
-    
         Integer idCuenta = productoExistente.getCuentaId();
-    
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
                 .orElseThrow(() -> new CredencialesNoValidas());
-    
         if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
             throw new SinPermisosSuficientes();
         }
-    
         return productoMapper.toDTO(productoExistente);
     }
     
@@ -136,7 +131,8 @@ public class ProductoService {
     }
     
 
-    public ProductoDTO actualizarProducto(Integer idProducto, ProductoDTO productoDTO, String jwtToken) {
+    public ProductoDTO actualizarProducto(Integer idProducto,
+        ProductoDTO productoDTO, String jwtToken) {
         Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
             .orElseThrow(CredencialesNoValidas::new);

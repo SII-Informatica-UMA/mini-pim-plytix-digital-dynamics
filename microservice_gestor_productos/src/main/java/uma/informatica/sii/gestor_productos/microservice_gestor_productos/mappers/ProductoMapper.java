@@ -70,8 +70,6 @@ public class ProductoMapper {
                 return a;
             }).collect(Collectors.toSet()));
     
-            dto.setCuentaId(producto.getCuentaId());
-    
             return dto;
     
         }
@@ -165,8 +163,6 @@ public class ProductoMapper {
             })
             .collect(Collectors.toSet())
         );
-        
-        producto.setCuentaId(dto.getCuentaId());
         
         return producto;
     }
