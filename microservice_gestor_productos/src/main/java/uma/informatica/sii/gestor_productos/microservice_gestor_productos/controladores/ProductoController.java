@@ -1,18 +1,10 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.controladores;
 
 import org.springframework.web.util.UriComponentsBuilder;
-
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios.ProductoService;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.CredencialesNoValidas;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.EntidadNoExistente;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.SinPermisosSuficientes;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.ProductoMapper;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
-
 import java.net.URI;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -99,6 +91,6 @@ public class ProductoController {
     public ResponseEntity<Void> eliminarProducto(@PathVariable Integer idProducto, @RequestHeader("Authorization") String authorizationHeader) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         productoService.eliminarProducto(idProducto, jwtToken);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }

@@ -1,11 +1,11 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers;
 
 import org.springframework.stereotype.Component;
-
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionProductoDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Relacion;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.RelacionProducto;
+
 @Component
 public class RelacionProductoMapper {
 
@@ -18,7 +18,7 @@ public class RelacionProductoMapper {
             productoOrigen.setId(dto.getIdProductoOrigen());
             entity.setProductoOrigen(productoOrigen);
         } else {
-            entity.setProductoOrigen(null); // Por si acaso
+            entity.setProductoOrigen(null);
         }
         
         if (dto.getIdProductoDestino() != null && dto.getIdProductoDestino() > 0) {
@@ -26,7 +26,7 @@ public class RelacionProductoMapper {
             productoDestino.setId(dto.getIdProductoDestino());
             entity.setProductoDestino(productoDestino);
         } else {
-            entity.setProductoDestino(null); // ← aquí está el problema más común
+            entity.setProductoDestino(null);
         }
 
         // Asignamos la relación
