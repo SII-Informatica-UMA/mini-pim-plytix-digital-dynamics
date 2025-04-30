@@ -2,9 +2,6 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappe
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.*;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -38,12 +35,9 @@ public class ProductoMapper {
                         return cdto;
                     }).collect(Collectors.toSet())
             );
-    
+            // Relaciones
             dto.setRelaciones(
-                Stream.concat(
-                    producto.getRelacionesOrigen().stream(),
-                    producto.getRelacionesDestino().stream()
-                )
+                producto.getRelacionesOrigen().stream()
                 .map(rp -> {
                     RelacionProductoDTO rpDto = new RelacionProductoDTO();
             
@@ -54,14 +48,13 @@ public class ProductoMapper {
                     relDto.setDescripcion(rp.getTipoRelacion().getDescripcion());
             
                     rpDto.setRelacion(relDto);
-                    rpDto.setIdProductoOrigen(rp.getProductoOrigen().getId());
-                    rpDto.setIdProductoDestino(rp.getProductoDestino().getId());
-            
+                    rpDto.setIdProductoOrigen(rp.getProductoOrigen() != null ? rp.getProductoOrigen().getId() : null);
+                    rpDto.setIdProductoDestino(rp.getProductoDestino() != null ? rp.getProductoDestino().getId() : null);
                     return rpDto;
                 })
                 .collect(Collectors.toSet())
             );
-            
+            // Atributos
             dto.setAtributos(producto.getAtributos().stream()
             .map(attr -> {
                 AtributoDTO a = new AtributoDTO();
@@ -69,8 +62,6 @@ public class ProductoMapper {
                 a.setValor(attr.getValor());
                 return a;
             }).collect(Collectors.toSet()));
-    
-            dto.setCuentaId(producto.getCuentaId());
     
             return dto;
     
@@ -116,7 +107,6 @@ public class ProductoMapper {
                 dto.getRelaciones().stream()
                 .map(rpDto -> {
                     RelacionProducto rp = new RelacionProducto();
-                    // Convertir la relación tipo
                     Relacion tipoRelacion = relacionMapper.toEntity(rpDto.getRelacion());
 
                 rp.setTipoRelacion(tipoRelacion);
@@ -126,7 +116,7 @@ public class ProductoMapper {
                     productoOrigen.setId(rpDto.getIdProductoOrigen());
                     rp.setProductoOrigen(productoOrigen);
                 } else {
-                    rp.setProductoOrigen(null); // Por si acaso
+                    rp.setProductoOrigen(null);
                 }
                 
                 if (rpDto.getIdProductoDestino() != null && rpDto.getIdProductoDestino() > 0) {
@@ -134,7 +124,7 @@ public class ProductoMapper {
                     productoDestino.setId(rpDto.getIdProductoDestino());
                     rp.setProductoDestino(productoDestino);
                 } else {
-                    rp.setProductoDestino(null); // ← aquí está el problema más común
+                    rp.setProductoDestino(null);
                 }
 
                 return rp;
@@ -146,28 +136,19 @@ public class ProductoMapper {
             dto.getRelaciones().stream()
             .map(rpDto -> {
                 RelacionProducto rp = new RelacionProducto();
-                // Convertir la relación tipo
                 Relacion tipoRelacion = relacionMapper.toEntity(rpDto.getRelacion());
-
                 rp.setTipoRelacion(tipoRelacion);
-
-                // Setear los productos de origen y destino
-                Producto productoOrigen = new Producto();
-                productoOrigen.setId(rpDto.getIdProductoDestino());  // Aquí se invierten los productos para destino
-
-                Producto productoDestino = new Producto();
-                productoDestino.setId(rpDto.getIdProductoOrigen());
-
-                rp.setProductoOrigen(productoOrigen);
-                rp.setProductoDestino(productoDestino);
-
+                if(rpDto.getIdProductoDestino() != null && rpDto.getIdProductoDestino() > 0) {
+                    Producto productoDestino = new Producto();
+                    productoDestino.setId(rpDto.getIdProductoDestino());
+                    rp.setProductoDestino(productoDestino);
+                } else {
+                    rp.setProductoDestino(null);
+                }
                 return rp;
             })
             .collect(Collectors.toSet())
         );
-        
-        producto.setCuentaId(dto.getCuentaId());
-        
         return producto;
     }
 }
