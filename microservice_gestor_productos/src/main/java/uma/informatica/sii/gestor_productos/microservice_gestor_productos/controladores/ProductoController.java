@@ -46,16 +46,16 @@ public class ProductoController {
             return ResponseEntity.ok(productoService.getProductoPorId(idProducto, jwtToken));
         }
 
-        if (gtin != null) {
-            return ResponseEntity.ok(productoService.getProductoPorGtin(gtin, jwtToken));
-        }
-
+        
         if (idCuenta != null) {
             return ResponseEntity.ok(productoService.getProductosPorIdCuenta(idCuenta, jwtToken));
         }
-
+        
         if (idCategoria != null) {
             return ResponseEntity.ok(productoService.getProductosPorIdCategoria(idCategoria, jwtToken));
+        }
+        if (gtin != null) {
+            return ResponseEntity.ok(productoService.getProductoPorGtin(gtin, jwtToken));
         }
 
         return ResponseEntity.badRequest().build();
@@ -84,7 +84,7 @@ public class ProductoController {
     ) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         ProductoDTO actualizado = productoService.actualizarProducto(idProducto, productoDTO, jwtToken);
-        return new ResponseEntity<>(actualizado, HttpStatus.OK);
+        return ResponseEntity.ok(actualizado);
     }
     
     @DeleteMapping("/{idProducto}")

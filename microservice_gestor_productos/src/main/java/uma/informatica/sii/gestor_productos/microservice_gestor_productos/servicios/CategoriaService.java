@@ -55,7 +55,7 @@ public class CategoriaService {
                 .map(UsuarioDTO::getId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
 
-        Integer cuentaId = usuarioService.getCuentaIdDelUsuario(idUsuario, jwtToken);
+        Integer cuentaId = usuarioService.usuarioPerteneceACuenta(dto.getId(), idUsuario, jwtToken) ? dto.getId() : null;
         nueva.setCuentaId(cuentaId);
 
         Categoria guardada = categoriaRepository.save(nueva);

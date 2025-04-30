@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.security.JwtUtil;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
@@ -37,22 +37,27 @@ public class ProductoService {
     private final ProductoMapper productoMapper;
     private final CuentaService cuentaService;
     private final RelacionRepository relacionRepository;
-
+    private final JwtUtil jwtUtil;
 
     public ProductoService(ProductoRepository productoRepository, 
     UsuarioService usuarioService, CategoriaRepository categoriaRepository, 
     ProductoMapper productoMapper, CuentaService cuentaService, 
-    RelacionRepository relacionRepository) {
+    RelacionRepository relacionRepository,
+    JwtUtil jwtUtil) {
         this.productoRepository = productoRepository;
         this.usuarioService = usuarioService;
         this.categoriaRepository = categoriaRepository;
         this.productoMapper = productoMapper;
         this.cuentaService = cuentaService;
         this.relacionRepository = relacionRepository;
+        this.jwtUtil = jwtUtil;
     }
 
 
     public ProductoDTO getProductoPorId(Integer idProducto, String jwtToken) {
+        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
+        if (tokenNoValido) throw new CredencialesNoValidas();
+        
         Optional<Producto> producto = productoRepository.findById(idProducto);
         if (producto.isEmpty()) {
             throw new EntidadNoExistente();
@@ -72,23 +77,28 @@ public class ProductoService {
     }
     
     public ProductoDTO getProductoPorGtin(String gtin, String jwtToken) {
+        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
+        if (tokenNoValido) throw new CredencialesNoValidas();
+
         Optional<Producto> producto = productoRepository.findByGtin(gtin);
         if (producto.isEmpty()) {
             throw new EntidadNoExistente();
         }
         Producto productoExistente = producto.get();
-        Integer idCuenta = productoExistente.getCuentaId();
-        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
-                .map(UsuarioDTO::getId)
-                .orElseThrow(() -> new CredencialesNoValidas());
-        if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
-            throw new SinPermisosSuficientes();
-        }
+        // Integer idCuenta = productoExistente.getCuentaId();
+        // Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
+        //         .map(UsuarioDTO::getId)
+        //         .orElseThrow(() -> new CredencialesNoValidas());
+        // if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
+        //     throw new SinPermisosSuficientes();
+        // }
         return productoMapper.toDTO(productoExistente);
     }
     
 
     public List<Producto> getProductosPorIdCuenta(Integer idCuenta, String jwtToken) {
+        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
+        if (tokenNoValido) throw new CredencialesNoValidas();
         Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
                 .orElseThrow(CredencialesNoValidas::new);
@@ -101,10 +111,12 @@ public class ProductoService {
                 throw new SinPermisosSuficientes();
             }
         }
-        return productoRepository.findByCuentaId(idCuenta);
+        return productoRepository.findByCuentaId(idCuenta); // comprobarlo
     }
 
     public List<Producto> getProductosPorIdCategoria(Integer idCategoria, String jwtToken) {
+        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
+        if (tokenNoValido) throw new CredencialesNoValidas();
         List<Producto> productos = productoRepository.findProductosByCategoriaId(idCategoria);
         if (productos.isEmpty()) {
             throw new EntidadNoExistente();
@@ -123,6 +135,9 @@ public class ProductoService {
 
     public ProductoDTO actualizarProducto(Integer idProducto,
         ProductoDTO productoDTO, String jwtToken) {
+        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
+        if (tokenNoValido) throw new CredencialesNoValidas();
+
         Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
             .orElseThrow(CredencialesNoValidas::new);
@@ -141,7 +156,7 @@ public class ProductoService {
         producto.setTextoCorto(productoDTO.getTextoCorto());
         producto.setMiniatura(productoDTO.getMiniatura());
         producto.setModificado(LocalDateTime.now());
-    
+        
         Set<Categoria> categorias = productoDTO.getCategorias().stream()
         .map(dto -> categoriaRepository.findById(dto.getId())
             .orElseThrow(() -> new EntidadNoExistente()))
@@ -166,6 +181,8 @@ public class ProductoService {
     
 
     public Producto crearProducto(ProductoDTO productoDTO, Integer idCuenta, String jwtToken) {
+        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
+        if (tokenNoValido) throw new CredencialesNoValidas();
         // comprobar que el usuario tiene permisos para crear el producto
         Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
@@ -241,6 +258,9 @@ public class ProductoService {
     }
 
     public void eliminarProducto(Integer id, String jwtToken) {
+        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
+        if (tokenNoValido) throw new CredencialesNoValidas();
+        
         Optional<Producto> productoOptional = productoRepository.findById(id);
         if (productoOptional.isPresent()) {
             UsuarioDTO usuario = usuarioService.getUsuarioConectado(jwtToken)
