@@ -24,11 +24,9 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mapper
 @RequestMapping("/relacion")
 public class RelacionController {
     private final RelacionService relacionService;
-    private final RelacionMapper relacionMapper;
 
     public RelacionController(RelacionService relacionService, RelacionMapper relacionMapper) {
         this.relacionService = relacionService;
-        this.relacionMapper = relacionMapper;
     }
 
     @GetMapping
@@ -61,9 +59,7 @@ public class RelacionController {
     public ResponseEntity<RelacionDTO> crearRelacion(@RequestBody RelacionDTO relacionDTO,
     @RequestParam Integer idCuenta, @RequestHeader("Authorization") String authorizationHeader,UriComponentsBuilder builder) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
-        RelacionDTO relacion = relacionMapper.toDTO(
-            relacionService.crearRelacion(relacionDTO,idCuenta,jwtToken)
-        );
+        RelacionDTO relacion = relacionService.crearRelacion(relacionDTO,idCuenta,jwtToken);
         URI uri = builder
                 .path(String.format("/%d", relacionDTO.getId()))
                 .build()

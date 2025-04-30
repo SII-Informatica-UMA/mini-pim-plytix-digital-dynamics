@@ -58,7 +58,7 @@ public class RelacionService {
         return relacionMapper.toDTO(relacionExistente);
     }
 
-    public List<Relacion> getRelacionesPorIdCuenta(Integer idCuenta, String jwtToken) {
+    public List<RelacionDTO> getRelacionesPorIdCuenta(Integer idCuenta, String jwtToken) {
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
                 .orElseThrow(CredencialesNoValidas::new);
@@ -73,10 +73,14 @@ public class RelacionService {
             }
         }
 
-        return relacionRepository.findAllByCuentaId(idCuenta);
+        return relacionRepository.findAllByCuentaId(idCuenta)
+                        .stream()
+                        .map(relacionMapper::toDTO)
+                        .toList()
+        ;
     }
 
-    public Relacion crearRelacion(RelacionDTO relacionDTO, Integer idCuenta, String jwtToken) {
+    public RelacionDTO crearRelacion(RelacionDTO relacionDTO, Integer idCuenta, String jwtToken) {
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
@@ -106,7 +110,7 @@ public class RelacionService {
 
         Relacion nuevaRelacion = relacionRepository.save(relacion);
 
-        return nuevaRelacion;
+        return relacionMapper.toDTO(nuevaRelacion);
     }
 
     public RelacionDTO actualizarRelacion(Integer idRelacion, RelacionDTO relacionDTO, String jwtToken) {
