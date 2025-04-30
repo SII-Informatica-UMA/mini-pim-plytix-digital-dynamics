@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/categoria")
@@ -25,12 +26,23 @@ public class CategoriaController {
 
     @GetMapping
     public ResponseEntity<?> getCategoria(
-            @RequestParam Integer idCategoria,
-            @RequestParam Integer cuentaId,
-            @RequestHeader("Authorization") String authorizationHeader) {
-        
-        String jwtToken = authorizationHeader.replace("Bearer ", "");
-        return ResponseEntity.ok(categoriaService.getCategoriaByIdAndCuenta(idCategoria, cuentaId, jwtToken));
+            @RequestParam(required = false) Integer idCategoria,
+            @RequestParam(required = false) Integer cuentaId,
+            @RequestHeader("Authorization") String jwtToken) {
+
+        int count = 0;
+        if (idCategoria != null) count++;
+        if (cuentaId != null) count++;
+
+        if (count != 1) {
+            return ResponseEntity.badRequest().body("Debe proporcionar exactamente un parámetro: idCategoria o cuentaId.");
+        }
+
+        if (idCategoria != null) {
+            return ResponseEntity.ok(categoriaService.getCategoriaById(idCategoria, jwtToken));
+        }
+
+        return ResponseEntity.ok(categoriaService.getCategoriasByCuentaId(cuentaId, jwtToken));
     }
 
     @PostMapping
