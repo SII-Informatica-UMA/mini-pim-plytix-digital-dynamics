@@ -5,7 +5,6 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.P
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios.ProductoService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.ProductoMapper;
 import java.net.URI;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -46,16 +45,16 @@ public class ProductoController {
             return ResponseEntity.ok(productoService.getProductoPorId(idProducto, jwtToken));
         }
 
-        if (gtin != null) {
-            return ResponseEntity.ok(productoService.getProductoPorGtin(gtin, jwtToken));
-        }
-
+        
         if (idCuenta != null) {
             return ResponseEntity.ok(productoService.getProductosPorIdCuenta(idCuenta, jwtToken));
         }
-
+        
         if (idCategoria != null) {
             return ResponseEntity.ok(productoService.getProductosPorIdCategoria(idCategoria, jwtToken));
+        }
+        if (gtin != null) {
+            return ResponseEntity.ok(productoService.getProductoPorGtin(gtin, jwtToken));
         }
 
         return ResponseEntity.badRequest().build();
@@ -84,7 +83,7 @@ public class ProductoController {
     ) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         ProductoDTO actualizado = productoService.actualizarProducto(idProducto, productoDTO, jwtToken);
-        return new ResponseEntity<>(actualizado, HttpStatus.OK);
+        return ResponseEntity.ok(actualizado);
     }
     
     @DeleteMapping("/{idProducto}")

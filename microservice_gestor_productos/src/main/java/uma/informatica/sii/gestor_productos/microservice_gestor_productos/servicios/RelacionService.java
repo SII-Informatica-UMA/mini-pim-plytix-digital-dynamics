@@ -31,7 +31,6 @@ public class RelacionService {
     private final RelacionMapper relacionMapper;
     private final CuentaService cuentaService;
 
-    @Autowired
     public RelacionService(RelacionRepository relacionRepository, RelacionMapper relacionMapper, UsuarioService usuarioService, CuentaService cuentaService) {
         this.relacionRepository = relacionRepository;
         this.relacionMapper = relacionMapper;
@@ -151,4 +150,3 @@ public class RelacionService {
         }
     }
 }
-   

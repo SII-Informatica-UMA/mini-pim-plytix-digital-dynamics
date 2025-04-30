@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.security.JwtUtil;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
@@ -37,7 +37,6 @@ public class ProductoService {
     private final ProductoMapper productoMapper;
     private final CuentaService cuentaService;
     private final RelacionRepository relacionRepository;
-
 
     public ProductoService(ProductoRepository productoRepository, 
     UsuarioService usuarioService, CategoriaRepository categoriaRepository, 
@@ -77,13 +76,13 @@ public class ProductoService {
             throw new EntidadNoExistente();
         }
         Producto productoExistente = producto.get();
-        Integer idCuenta = productoExistente.getCuentaId();
-        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
-                .map(UsuarioDTO::getId)
-                .orElseThrow(() -> new CredencialesNoValidas());
-        if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
-            throw new SinPermisosSuficientes();
-        }
+        // Integer idCuenta = productoExistente.getCuentaId();
+        // Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
+        //         .map(UsuarioDTO::getId)
+        //         .orElseThrow(() -> new CredencialesNoValidas());
+        // if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
+        //     throw new SinPermisosSuficientes();
+        // }
         return productoMapper.toDTO(productoExistente);
     }
     
@@ -101,7 +100,7 @@ public class ProductoService {
                 throw new SinPermisosSuficientes();
             }
         }
-        return productoRepository.findByCuentaId(idCuenta);
+        return productoRepository.findByCuentaId(idCuenta); // comprobarlo
     }
 
     public List<Producto> getProductosPorIdCategoria(Integer idCategoria, String jwtToken) {
@@ -141,7 +140,7 @@ public class ProductoService {
         producto.setTextoCorto(productoDTO.getTextoCorto());
         producto.setMiniatura(productoDTO.getMiniatura());
         producto.setModificado(LocalDateTime.now());
-    
+        
         Set<Categoria> categorias = productoDTO.getCategorias().stream()
         .map(dto -> categoriaRepository.findById(dto.getId())
             .orElseThrow(() -> new EntidadNoExistente()))
