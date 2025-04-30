@@ -3,6 +3,7 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.servi
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.Usuario;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
@@ -33,48 +34,50 @@ public class CategoriaService {
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+                .orElseThrow(() -> new SinPermisosSuficientes());
 
-        if (!usuarioService.usuarioPerteneceACuenta(categoria.getCuentaId(), idUsuario, jwtToken)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: no puedes ver esta categoría.");
+        if (!usuarioService.usuarioPerteneceACuenta(categoria.getId(), idUsuario, jwtToken)) {
+            throw new SinPermisosSuficientes();
         }
 
         return CategoriaMapper.toDTO(categoria);
     }
 
-    public List<CategoriaDTO> getCategoriasByCuentaId(Integer cuentaId, String jwtToken) {
+    public List<CategoriaDTO> getCategoriasByidCuenta(Integer idCuenta, String jwtToken) {
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+                .orElseThrow(() -> new SinPermisosSuficientes());
 
-        if (!usuarioService.usuarioPerteneceACuenta(cuentaId, idUsuario, jwtToken)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: no puedes ver las categorías de esta cuenta.");
+        UsuarioDTO usuario = usuarioService.getUsuario(idUsuario, jwtToken)
+                .orElseThrow(() -> new SinPermisosSuficientes());
+
+        if (!usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR)) {
+            boolean pertenece = usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken);
+            if (!pertenece) {
+                throw new SinPermisosSuficientes();
+            }
         }
 
         return categoriaRepository.findAll().stream()
-                .filter(cat -> cat.getCuentaId().equals(cuentaId))
+                .filter(cat -> cat.getCuentaId().equals(idCuenta))
                 .map(CategoriaMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
-    public CategoriaDTO crearCategoria(CategoriaDTO dto, String jwtToken) {
+    public CategoriaDTO crearCategoria(CategoriaDTO dto, Integer idCuenta, String jwtToken) {
         Optional<Categoria> existente = categoriaRepository.findByNombre(dto.getNombre());
         if (existente.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La categoría '" + dto.getNombre() + "' ya existe.");
+            throw new EntidadNoExistente();
         }
 
         Categoria nueva = CategoriaMapper.toEntity(dto);
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+                .orElseThrow(() -> new SinPermisosSuficientes());
 
-        UsuarioDTO usuario = usuarioService.getUsuario(idUsuario, jwtToken)
-                .orElseThrow(() -> new EntidadNoExistente());
-        
-        if(!usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken)){
-            throw new SinPermisosSuficientes();
-        }
+        idCuenta = usuarioService.usuarioPerteneceACuenta(dto.getId(), idUsuario, jwtToken) ? dto.getId() : null;
+        nueva.setId(idCuenta);
 
         nueva.setId(dto.getId());
         nueva.setNombre(dto.getNombre());
@@ -83,16 +86,17 @@ public class CategoriaService {
         Categoria guardada = categoriaRepository.save(nueva);
         return CategoriaMapper.toDTO(guardada);
     }
+
     public CategoriaDTO modificarCategoria(Integer idCategoria, CategoriaDTO dto, String jwtToken) {
         Categoria categoria = categoriaRepository.findById(idCategoria)
                 .orElseThrow(EntidadNoExistente::new);
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+                .orElseThrow(() -> new SinPermisosSuficientes());
 
-        if (!usuarioService.usuarioPerteneceACuenta(categoria.getCuentaId(), idUsuario, jwtToken)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: no puedes modificar esta categoría.");
+        if (!usuarioService.usuarioPerteneceACuenta(categoria.getId(), idUsuario, jwtToken)) {
+            throw new SinPermisosSuficientes();
         }
 
         categoria.setNombre(dto.getNombre());
@@ -107,10 +111,10 @@ public class CategoriaService {
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+                .orElseThrow(() -> new SinPermisosSuficientes());
 
-        if (!usuarioService.usuarioPerteneceACuenta(categoria.getCuentaId(), idUsuario, jwtToken)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: no puedes eliminar esta categoría.");
+        if (!usuarioService.usuarioPerteneceACuenta(categoria.getId(), idUsuario, jwtToken)) {
+            throw new EntidadNoExistente();
         }
 
         categoriaRepository.delete(categoria);
