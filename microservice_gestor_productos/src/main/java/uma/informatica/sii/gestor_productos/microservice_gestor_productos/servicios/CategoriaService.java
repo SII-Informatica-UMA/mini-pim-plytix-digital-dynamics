@@ -1,6 +1,7 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios;
 
 import org.springframework.stereotype.Service;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.Usuario;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioService;
@@ -20,10 +21,12 @@ public class CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
     private final UsuarioService usuarioService;
+    private final CuentaService cuentaService;
 
-    public CategoriaService(CategoriaRepository categoriaRepository, UsuarioService usuarioService) {
+    public CategoriaService(CategoriaRepository categoriaRepository, UsuarioService usuarioService, CuentaService cuentaService) {
         this.categoriaRepository = categoriaRepository;
         this.usuarioService = usuarioService;
+        this.cuentaService = cuentaService;
     }
 
     public CategoriaDTO getCategoriaById(Integer idCategoria, String jwtToken) {
@@ -76,6 +79,11 @@ public class CategoriaService {
 
         if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
             throw new SinPermisosSuficientes();
+        }
+
+        int relacionesActuales = categoriaRepository.findByCuentaId(idCuenta).size();
+        if (!cuentaService.puedeCrearProducto(Long.valueOf(idCuenta), relacionesActuales)) {
+            throw new EntidadNoExistente();
         }
         nueva.setCuentaId(idCuenta);
         nueva.setId(dto.getId());
