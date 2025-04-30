@@ -8,7 +8,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity
 
 @Component
 public class RelacionMapper {
-    public static RelacionDTO toDTO(Relacion relacion) {
+    public RelacionDTO toDTO(Relacion relacion) {
         if (relacion == null) return null;
         RelacionDTO dto = new RelacionDTO();
         dto.setId(relacion.getId());
@@ -17,7 +17,7 @@ public class RelacionMapper {
         return dto;
     }
 
-    public static Relacion toEntity(RelacionDTO dto) {
+    public Relacion toEntity(RelacionDTO dto) {
         Relacion relacion = new Relacion();
         relacion.setId(dto.getId());
         relacion.setNombre(dto.getNombre());

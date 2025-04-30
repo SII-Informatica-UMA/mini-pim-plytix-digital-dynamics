@@ -28,11 +28,13 @@ public class RelacionService {
     private final RelacionRepository relacionRepository;
     private final UsuarioService usuarioService;
     private final CuentaService cuentaService;
+    private final RelacionMapper relacionMapper;
 
-    public RelacionService(RelacionRepository relacionRepository, UsuarioService usuarioService, CuentaService cuentaService) {
+    public RelacionService(RelacionRepository relacionRepository, UsuarioService usuarioService, CuentaService cuentaService, RelacionMapper relacionMapper) {
         this.relacionRepository = relacionRepository;
         this.usuarioService = usuarioService;
         this.cuentaService = cuentaService;
+        this.relacionMapper = relacionMapper;
     }
 
     public RelacionDTO getRelacionPorId(Integer idRelacion, String jwtToken) {
@@ -51,7 +53,7 @@ public class RelacionService {
             throw new SinPermisosSuficientes();
         }
 
-        return RelacionMapper.toDTO(relacionExistente);
+        return relacionMapper.toDTO(relacionExistente);
     }
 
     public List<RelacionDTO> getRelacionesPorIdCuenta(Integer idCuenta, String jwtToken) {
@@ -69,13 +71,14 @@ public class RelacionService {
             }
         }
 
-        return relacionRepository.findAll().stream()
-            .filter(rel -> rel.getCuentaId().equals(idCuenta))
-            .map(RelacionMapper::toDTO)
-            .collect(Collectors.toList());
+        return relacionRepository.findAllByCuentaId(idCuenta)
+                        .stream()
+                        .map(relacionMapper::toDTO)
+                        .toList()
+        ;
     }
 
-    public Relacion crearRelacion(RelacionDTO relacionDTO, Integer idCuenta, String jwtToken) {
+    public RelacionDTO crearRelacion(RelacionDTO relacionDTO, Integer idCuenta, String jwtToken) {
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
@@ -87,7 +90,7 @@ public class RelacionService {
             throw new SinPermisosSuficientes();
         }
     
-        Relacion relacion = RelacionMapper.toEntity(relacionDTO);
+        Relacion relacion = relacionMapper.toEntity(relacionDTO);
         
         if (relacionRepository.findById(relacionDTO.getId()).isPresent()) {
             throw new SinPermisosSuficientes();
@@ -105,7 +108,7 @@ public class RelacionService {
 
         Relacion nuevaRelacion = relacionRepository.save(relacion);
 
-        return nuevaRelacion;
+        return relacionMapper.toDTO(nuevaRelacion);
     }
 
     public RelacionDTO actualizarRelacion(Integer idRelacion, RelacionDTO relacionDTO, String jwtToken) {
@@ -128,7 +131,7 @@ public class RelacionService {
 
         Relacion actualizado = relacionRepository.save(relacion);
         
-        return RelacionMapper.toDTO(actualizado);
+        return relacionMapper.toDTO(actualizado);
     }
 
     public void eliminarRelacion(Integer idRelacion, String jwtToken) {
