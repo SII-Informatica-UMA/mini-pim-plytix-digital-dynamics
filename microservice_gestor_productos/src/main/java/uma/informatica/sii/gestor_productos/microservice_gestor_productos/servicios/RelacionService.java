@@ -59,11 +59,11 @@ public class RelacionService {
     }
 
     public List<Relacion> getRelacionesPorIdCuenta(Integer idCuenta, String jwtToken) {
-        Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
+        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
                 .orElseThrow(CredencialesNoValidas::new);
 
-        UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
+        UsuarioDTO usuario = usuarioService.getUsuario(idUsuario, jwtToken)
                 .orElseThrow(() -> new EntidadNoExistente());
 
         if (!usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR)) {
@@ -78,11 +78,11 @@ public class RelacionService {
 
     public Relacion crearRelacion(RelacionDTO relacionDTO, Integer idCuenta, String jwtToken) {
 
-        Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
+        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
             .orElseThrow(CredencialesNoValidas::new);
     
-        UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
+        UsuarioDTO usuario = usuarioService.getUsuario(idUsuario, jwtToken)
             .orElseThrow(() -> new EntidadNoExistente());
         if(!usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken)){
             throw new SinPermisosSuficientes();
@@ -110,11 +110,11 @@ public class RelacionService {
     }
 
     public RelacionDTO actualizarRelacion(Integer idRelacion, RelacionDTO relacionDTO, String jwtToken) {
-        Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
+        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
             .orElseThrow(CredencialesNoValidas::new);
     
-        UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
+        UsuarioDTO usuario = usuarioService.getUsuario(idUsuario, jwtToken)
             .orElseThrow(() -> new EntidadNoExistente());
     
         Relacion relacion = relacionRepository.findById(idRelacion)
@@ -132,9 +132,8 @@ public class RelacionService {
         return relacionMapper.toDTO(actualizado);
     }
 
-    //Falta condicion usuario asociado a cuenta
-    public void eliminarRelacion(Integer id, String jwtToken) {
-        Optional<Relacion> relacionOptional = relacionRepository.findById(id);
+    public void eliminarRelacion(Integer idRelacion, String jwtToken) {
+        Optional<Relacion> relacionOptional = relacionRepository.findById(idRelacion);
         if (relacionOptional.isPresent()) {
             Relacion relacion = relacionOptional.get();
             Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
@@ -145,7 +144,7 @@ public class RelacionService {
                 throw new SinPermisosSuficientes();
             }
 
-            relacionRepository.deleteById(id);
+            relacionRepository.deleteById(idRelacion);
         } else {
             throw new EntidadNoExistente();
         }

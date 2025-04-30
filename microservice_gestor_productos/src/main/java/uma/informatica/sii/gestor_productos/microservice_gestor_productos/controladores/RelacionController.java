@@ -19,7 +19,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios.RelacionService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.RelacionMapper;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionProductoDTO;
 
 @RestController
 @RequestMapping("/relacion")
@@ -36,8 +35,9 @@ public class RelacionController {
     public ResponseEntity<?> getRelacion(
             @RequestParam(required = false) Integer idRelacion,
             @RequestParam(required = false) Integer idCuenta,
-            @RequestHeader("Authorization") String jwtToken) {
+            @RequestHeader("Authorization") String authorizationHeader) {
 
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
         int count = 0;
         if (idRelacion != null) count++;
         if (idCuenta != null) count++;
@@ -59,10 +59,10 @@ public class RelacionController {
 
     @PostMapping
     public ResponseEntity<RelacionDTO> crearRelacion(@RequestBody RelacionDTO relacionDTO,
-    @RequestParam Integer cuentaId, @RequestHeader("Authorization") String authorizationHeader,UriComponentsBuilder builder) {
+    @RequestParam Integer idCuenta, @RequestHeader("Authorization") String authorizationHeader,UriComponentsBuilder builder) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         RelacionDTO relacion = relacionMapper.toDTO(
-            relacionService.crearRelacion(relacionDTO,cuentaId,jwtToken)
+            relacionService.crearRelacion(relacionDTO,idCuenta,jwtToken)
         );
         URI uri = builder
                 .path(String.format("/%d", relacionDTO.getId()))
@@ -84,8 +84,9 @@ public class RelacionController {
     @DeleteMapping("/{idRelacion}")
     public ResponseEntity<Void> eliminarRelacion(
         @PathVariable Integer idRelacion,
-        @RequestHeader("Authorization") String jwtToken
+        @RequestHeader("Authorization") String authorizationHeader
         ) {
+        String jwtToken = authorizationHeader.replace("Bearer ", "");
         relacionService.eliminarRelacion(idRelacion, jwtToken);
         return ResponseEntity.noContent().build();
     }
