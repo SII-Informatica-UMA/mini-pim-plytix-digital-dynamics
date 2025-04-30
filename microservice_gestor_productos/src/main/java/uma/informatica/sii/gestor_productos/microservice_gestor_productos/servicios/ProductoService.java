@@ -37,27 +37,21 @@ public class ProductoService {
     private final ProductoMapper productoMapper;
     private final CuentaService cuentaService;
     private final RelacionRepository relacionRepository;
-    private final JwtUtil jwtUtil;
 
     public ProductoService(ProductoRepository productoRepository, 
     UsuarioService usuarioService, CategoriaRepository categoriaRepository, 
     ProductoMapper productoMapper, CuentaService cuentaService, 
-    RelacionRepository relacionRepository,
-    JwtUtil jwtUtil) {
+    RelacionRepository relacionRepository) {
         this.productoRepository = productoRepository;
         this.usuarioService = usuarioService;
         this.categoriaRepository = categoriaRepository;
         this.productoMapper = productoMapper;
         this.cuentaService = cuentaService;
         this.relacionRepository = relacionRepository;
-        this.jwtUtil = jwtUtil;
     }
 
 
     public ProductoDTO getProductoPorId(Integer idProducto, String jwtToken) {
-        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
-        if (tokenNoValido) throw new CredencialesNoValidas();
-        
         Optional<Producto> producto = productoRepository.findById(idProducto);
         if (producto.isEmpty()) {
             throw new EntidadNoExistente();
@@ -77,9 +71,6 @@ public class ProductoService {
     }
     
     public ProductoDTO getProductoPorGtin(String gtin, String jwtToken) {
-        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
-        if (tokenNoValido) throw new CredencialesNoValidas();
-
         Optional<Producto> producto = productoRepository.findByGtin(gtin);
         if (producto.isEmpty()) {
             throw new EntidadNoExistente();
@@ -97,8 +88,6 @@ public class ProductoService {
     
 
     public List<Producto> getProductosPorIdCuenta(Integer idCuenta, String jwtToken) {
-        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
-        if (tokenNoValido) throw new CredencialesNoValidas();
         Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
                 .orElseThrow(CredencialesNoValidas::new);
@@ -115,8 +104,6 @@ public class ProductoService {
     }
 
     public List<Producto> getProductosPorIdCategoria(Integer idCategoria, String jwtToken) {
-        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
-        if (tokenNoValido) throw new CredencialesNoValidas();
         List<Producto> productos = productoRepository.findProductosByCategoriaId(idCategoria);
         if (productos.isEmpty()) {
             throw new EntidadNoExistente();
@@ -135,9 +122,6 @@ public class ProductoService {
 
     public ProductoDTO actualizarProducto(Integer idProducto,
         ProductoDTO productoDTO, String jwtToken) {
-        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
-        if (tokenNoValido) throw new CredencialesNoValidas();
-
         Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
             .orElseThrow(CredencialesNoValidas::new);
@@ -181,8 +165,6 @@ public class ProductoService {
     
 
     public Producto crearProducto(ProductoDTO productoDTO, Integer idCuenta, String jwtToken) {
-        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
-        if (tokenNoValido) throw new CredencialesNoValidas();
         // comprobar que el usuario tiene permisos para crear el producto
         Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
@@ -258,9 +240,6 @@ public class ProductoService {
     }
 
     public void eliminarProducto(Integer id, String jwtToken) {
-        boolean tokenNoValido = jwtUtil.isTokenExpired(jwtToken);
-        if (tokenNoValido) throw new CredencialesNoValidas();
-        
         Optional<Producto> productoOptional = productoRepository.findById(id);
         if (productoOptional.isPresent()) {
             UsuarioDTO usuario = usuarioService.getUsuarioConectado(jwtToken)
