@@ -11,7 +11,9 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepc
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.CategoriaMapper;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class CategoriaService {
@@ -24,23 +26,34 @@ public class CategoriaService {
         this.usuarioService = usuarioService;
     }
 
-    public CategoriaDTO getCategoriaByIdAndCuenta(Integer idCategoria, Integer cuentaId, String jwtToken) {
+    public CategoriaDTO getCategoriaById(Integer idCategoria, String jwtToken) {
         Categoria categoria = categoriaRepository.findById(idCategoria)
                 .orElseThrow(EntidadNoExistente::new);
-
-        if (!categoria.getCuentaId().equals(cuentaId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: la categoría no pertenece a la cuenta proporcionada.");
-        }
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
 
-        if (!usuarioService.usuarioPerteneceACuenta(cuentaId, idUsuario, jwtToken)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: el usuario no pertenece a la cuenta.");
+        if (!usuarioService.usuarioPerteneceACuenta(categoria.getCuentaId(), idUsuario, jwtToken)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: no puedes ver esta categoría.");
         }
 
         return CategoriaMapper.toDTO(categoria);
+    }
+
+    public List<CategoriaDTO> getCategoriasByCuentaId(Integer cuentaId, String jwtToken) {
+        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
+                .map(UsuarioDTO::getId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado"));
+
+        if (!usuarioService.usuarioPerteneceACuenta(cuentaId, idUsuario, jwtToken)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado: no puedes ver las categorías de esta cuenta.");
+        }
+
+        return categoriaRepository.findAll().stream()
+                .filter(cat -> cat.getCuentaId().equals(cuentaId))
+                .map(CategoriaMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     public CategoriaDTO crearCategoria(CategoriaDTO dto, String jwtToken) {
@@ -61,7 +74,6 @@ public class CategoriaService {
         Categoria guardada = categoriaRepository.save(nueva);
         return CategoriaMapper.toDTO(guardada);
     }
-
     public CategoriaDTO modificarCategoria(Integer idCategoria, CategoriaDTO dto, String jwtToken) {
         Categoria categoria = categoriaRepository.findById(idCategoria)
                 .orElseThrow(EntidadNoExistente::new);
