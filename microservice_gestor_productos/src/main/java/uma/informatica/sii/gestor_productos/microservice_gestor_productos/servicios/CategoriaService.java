@@ -67,7 +67,7 @@ public class CategoriaService {
 
     public CategoriaDTO crearCategoria(CategoriaDTO dto, Integer idCuenta, String jwtToken) {
         Optional<Categoria> existente = categoriaRepository.findByNombre(dto.getNombre());
-        if (!existente.isPresent()) {
+        if (existente.isPresent()) {
             throw new EntidadNoExistente();
         }
         
