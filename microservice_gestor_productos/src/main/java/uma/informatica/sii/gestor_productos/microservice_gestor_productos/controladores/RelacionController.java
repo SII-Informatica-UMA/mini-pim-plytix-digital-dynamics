@@ -60,7 +60,7 @@ public class RelacionController {
     public ResponseEntity<RelacionDTO> crearRelacion(@RequestBody RelacionDTO relacionDTO,
     @RequestParam Integer idCuenta, @RequestHeader("Authorization") String authorizationHeader,UriComponentsBuilder builder) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
-        RelacionDTO relacion = relacionMapper.toDTO(
+        RelacionDTO relacion = RelacionMapper.toDTO(
             relacionService.crearRelacion(relacionDTO,idCuenta,jwtToken)
         );
         URI uri = builder

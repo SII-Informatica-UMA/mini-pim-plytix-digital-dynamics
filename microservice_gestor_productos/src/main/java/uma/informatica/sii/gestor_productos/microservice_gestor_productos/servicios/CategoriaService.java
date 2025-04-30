@@ -1,8 +1,6 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.Usuario;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioService;
@@ -82,10 +80,6 @@ public class CategoriaService {
         nueva.setCuentaId(idCuenta);
         nueva.setId(dto.getId());
         nueva.setNombre(dto.getNombre());
-
-        nueva.setId(dto.getId());
-        nueva.setNombre(dto.getNombre());
-        nueva.setCuentaId(idCuenta);
         
         Categoria guardada = categoriaRepository.save(nueva);
         return CategoriaMapper.toDTO(guardada);
