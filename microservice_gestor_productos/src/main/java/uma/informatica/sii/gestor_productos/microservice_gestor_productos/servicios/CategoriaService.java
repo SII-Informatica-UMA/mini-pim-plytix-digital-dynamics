@@ -52,11 +52,11 @@ public class CategoriaService {
                 .orElseThrow(() -> new SinPermisosSuficientes());
 
         if (!usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR)) {
-            boolean pertenece = usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken);
-            if (!pertenece) {
-                throw new SinPermisosSuficientes();
-            }
-        }
+                    boolean pertenece = usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken);
+                    if (!pertenece) {
+                        throw new SinPermisosSuficientes();
+                    }
+                }
 
         return categoriaRepository.findAll().stream()
                 .filter(cat -> cat.getCuentaId().equals(idCuenta))
@@ -66,18 +66,22 @@ public class CategoriaService {
 
     public CategoriaDTO crearCategoria(CategoriaDTO dto, Integer idCuenta, String jwtToken) {
         Optional<Categoria> existente = categoriaRepository.findByNombre(dto.getNombre());
-        if (existente.isPresent()) {
+        if (!existente.isPresent()) {
             throw new EntidadNoExistente();
         }
-
+        
         Categoria nueva = CategoriaMapper.toEntity(dto);
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
                 .orElseThrow(() -> new SinPermisosSuficientes());
 
-        idCuenta = usuarioService.usuarioPerteneceACuenta(dto.getId(), idUsuario, jwtToken) ? dto.getId() : null;
-        nueva.setId(idCuenta);
+        if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
+            throw new SinPermisosSuficientes();
+        }
+        nueva.setCuentaId(idCuenta);
+        nueva.setId(dto.getId());
+        nueva.setNombre(dto.getNombre());
 
         nueva.setId(dto.getId());
         nueva.setNombre(dto.getNombre());
