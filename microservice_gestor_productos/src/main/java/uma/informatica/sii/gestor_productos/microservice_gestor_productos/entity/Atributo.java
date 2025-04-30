@@ -4,8 +4,9 @@ import java.util.*;
 
 @Embeddable
 public class Atributo {
-    @Column(name = "nombre_atributo", unique = true, nullable = false)
+    @Column(name = "nombre_atributo", nullable = false)
     private String nombre;
+    @Column(name = "valor_atributo", nullable = false)
     private String valor;
 
     
