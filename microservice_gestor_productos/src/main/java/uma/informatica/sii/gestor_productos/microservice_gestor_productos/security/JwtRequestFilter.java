@@ -1,6 +1,5 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.security;
 
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.Usuario;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.CredencialesNoValidas;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;

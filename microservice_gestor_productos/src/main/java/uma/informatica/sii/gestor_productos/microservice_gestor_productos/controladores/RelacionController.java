@@ -2,7 +2,7 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.contr
 
 import java.net.URI;
 
-import org.springframework.http.HttpStatus;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +18,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios.RelacionService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionEntradaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.RelacionMapper;
 
 @RestController
@@ -55,25 +56,25 @@ public class RelacionController {
     }
 
     @PostMapping
-    public ResponseEntity<RelacionDTO> crearRelacion(@RequestBody RelacionDTO relacionDTO,
+    public ResponseEntity<RelacionDTO> crearRelacion(@RequestBody RelacionEntradaDTO relacionDTO,
     @RequestParam Integer idCuenta, @RequestHeader("Authorization") String authorizationHeader,UriComponentsBuilder builder) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         RelacionDTO relacion = relacionService.crearRelacion(relacionDTO,idCuenta,jwtToken);
         URI uri = builder
-                .path(String.format("/%d", relacionDTO.getId()))
+                .path(String.format("/%d", relacion.getId()))
                 .build()
                 .toUri();
         return ResponseEntity.created(uri).body(relacion);
     }
 
     @PutMapping ("/{idRelacion}")
-    public ResponseEntity<?> actualizarRelacion(
+    public ResponseEntity<RelacionDTO> actualizarRelacion(
             @PathVariable Integer idRelacion,
             @RequestBody RelacionDTO relacionDTO,
             @RequestHeader("Authorization") String authorizationHeader) {
             String jwtToken = authorizationHeader.replace("Bearer ", "");
             RelacionDTO actualizado = relacionService.actualizarRelacion(idRelacion, relacionDTO, jwtToken);
-            return new ResponseEntity<>(actualizado, HttpStatus.OK);
+            return ResponseEntity.ok(actualizado);
     }
 
     @DeleteMapping("/{idRelacion}")
@@ -83,6 +84,6 @@ public class RelacionController {
         ) {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
         relacionService.eliminarRelacion(idRelacion, jwtToken);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }

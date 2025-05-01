@@ -6,7 +6,9 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuari
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaEntradaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.CredencialesNoValidas;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.EntidadNoExistente;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.SinPermisosSuficientes;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.CategoriaMapper;
@@ -35,7 +37,7 @@ public class CategoriaService {
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
-                .orElseThrow(() -> new SinPermisosSuficientes());
+                .orElseThrow(() -> new CredencialesNoValidas());
 
         if (!usuarioService.usuarioPerteneceACuenta(categoria.getId(), idUsuario, jwtToken)) {
             throw new SinPermisosSuficientes();
@@ -47,7 +49,7 @@ public class CategoriaService {
     public List<CategoriaDTO> getCategoriasByidCuenta(Integer idCuenta, String jwtToken) {
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
-                .orElseThrow(() -> new SinPermisosSuficientes());
+                .orElseThrow(() -> new CredencialesNoValidas());
 
         UsuarioDTO usuario = usuarioService.getUsuario(idUsuario, jwtToken)
                 .orElseThrow(() -> new SinPermisosSuficientes());
@@ -65,41 +67,40 @@ public class CategoriaService {
                 .collect(Collectors.toList());
     }
 
-    public CategoriaDTO crearCategoria(CategoriaDTO dto, Integer idCuenta, String jwtToken) {
+    public CategoriaDTO crearCategoria(CategoriaEntradaDTO dto, Integer idCuenta, String jwtToken) {
         Optional<Categoria> existente = categoriaRepository.findByNombre(dto.getNombre());
         if (existente.isPresent()) {
             throw new EntidadNoExistente();
         }
         
-        Categoria nueva = CategoriaMapper.toEntity(dto);
+        Categoria nueva = CategoriaMapper.toEntityEntrada(dto);
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
-                .orElseThrow(() -> new SinPermisosSuficientes());
+                .orElseThrow(() -> new CredencialesNoValidas());
 
         if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
             throw new SinPermisosSuficientes();
         }
 
-        int relacionesActuales = categoriaRepository.findByCuentaId(idCuenta).size();
-        if (!cuentaService.puedeCrearProducto(Long.valueOf(idCuenta), relacionesActuales)) {
-            throw new EntidadNoExistente();
+        int categoriasActuales = categoriaRepository.findByCuentaId(idCuenta).size();
+        if (!cuentaService.puedeCrearCategoria(Long.valueOf(idCuenta), categoriasActuales)) {
+            throw new SinPermisosSuficientes();
         }
         nueva.setCuentaId(idCuenta);
-        nueva.setId(dto.getId());
         nueva.setNombre(dto.getNombre());
         
         Categoria guardada = categoriaRepository.save(nueva);
         return CategoriaMapper.toDTO(guardada);
     }
 
-    public CategoriaDTO modificarCategoria(Integer idCategoria, CategoriaDTO dto, String jwtToken) {
+    public CategoriaDTO modificarCategoria(Integer idCategoria, CategoriaEntradaDTO dto, String jwtToken) {
         Categoria categoria = categoriaRepository.findById(idCategoria)
                 .orElseThrow(EntidadNoExistente::new);
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
-                .orElseThrow(() -> new SinPermisosSuficientes());
+                .orElseThrow(() -> new CredencialesNoValidas());
 
         if (!usuarioService.usuarioPerteneceACuenta(categoria.getId(), idUsuario, jwtToken)) {
             throw new SinPermisosSuficientes();
@@ -117,10 +118,10 @@ public class CategoriaService {
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
-                .orElseThrow(() -> new SinPermisosSuficientes());
+                .orElseThrow(() -> new CredencialesNoValidas());
 
         if (!usuarioService.usuarioPerteneceACuenta(categoria.getId(), idUsuario, jwtToken)) {
-            throw new EntidadNoExistente();
+            throw new SinPermisosSuficientes();
         }
 
         categoriaRepository.delete(categoria);

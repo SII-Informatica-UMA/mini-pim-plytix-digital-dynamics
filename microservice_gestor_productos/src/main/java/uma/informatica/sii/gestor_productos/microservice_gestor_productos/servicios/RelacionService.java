@@ -6,10 +6,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionEntradaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Relacion;
 
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.CredencialesNoValidas;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.EntidadNoExistente;
@@ -62,7 +62,7 @@ public class RelacionService {
                 .orElseThrow(CredencialesNoValidas::new);
 
         UsuarioDTO usuario = usuarioService.getUsuario(idUsuario, jwtToken)
-                .orElseThrow(() -> new EntidadNoExistente());
+                .orElseThrow(() -> new SinPermisosSuficientes());
 
         if (!usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR)) {
             boolean pertenece = usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken);
@@ -78,7 +78,7 @@ public class RelacionService {
         ;
     }
 
-    public RelacionDTO crearRelacion(RelacionDTO relacionDTO, Integer idCuenta, String jwtToken) {
+    public RelacionDTO crearRelacion(RelacionEntradaDTO relacionDTO, Integer idCuenta, String jwtToken) {
 
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
@@ -90,18 +90,14 @@ public class RelacionService {
             throw new SinPermisosSuficientes();
         }
     
-        Relacion relacion = relacionMapper.toEntity(relacionDTO);
+        Relacion relacion = relacionMapper.toEntityEntrada(relacionDTO);
         
-        if (relacionRepository.findById(relacionDTO.getId()).isPresent()) {
-            throw new SinPermisosSuficientes();
-        }
 
         int relacionesActuales = relacionRepository.findAllByCuentaId(idCuenta).size();
-        if (!cuentaService.puedeCrearProducto(Long.valueOf(idCuenta), relacionesActuales)) {
-            throw new EntidadNoExistente();
+        if (!cuentaService.puedeCrearRelacion(Long.valueOf(idCuenta), relacionesActuales)) {
+            throw new SinPermisosSuficientes();
         }
-
-        relacion.setId(relacionDTO.getId());
+        
         relacion.setNombre(relacionDTO.getNombre());
         relacion.setDescripcion(relacionDTO.getDescripcion());
         relacion.setCuentaId(idCuenta);
@@ -117,7 +113,7 @@ public class RelacionService {
             .orElseThrow(CredencialesNoValidas::new);
     
         UsuarioDTO usuario = usuarioService.getUsuario(idUsuario, jwtToken)
-            .orElseThrow(() -> new EntidadNoExistente());
+            .orElseThrow(() -> new SinPermisosSuficientes());
     
         Relacion relacion = relacionRepository.findById(idRelacion)
             .orElseThrow(() -> new EntidadNoExistente());

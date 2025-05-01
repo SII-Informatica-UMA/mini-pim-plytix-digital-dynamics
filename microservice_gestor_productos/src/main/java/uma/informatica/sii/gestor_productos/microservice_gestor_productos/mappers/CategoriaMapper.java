@@ -20,4 +20,10 @@ public class CategoriaMapper {
         return categoria;
     }
 
+    public static Categoria toEntityEntrada(CategoriaEntradaDTO categoriaEntradaDTO) {
+        Categoria categoria = new Categoria();
+        categoria.setNombre(categoriaEntradaDTO.getNombre());
+        return categoria;
+    }
+
 }

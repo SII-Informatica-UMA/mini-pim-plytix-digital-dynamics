@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 @Entity
 public class Producto{
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     @Column(unique = true, nullable = false)
     private String gtin;

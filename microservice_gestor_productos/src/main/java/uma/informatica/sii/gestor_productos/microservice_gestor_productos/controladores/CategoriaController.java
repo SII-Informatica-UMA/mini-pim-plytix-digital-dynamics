@@ -1,6 +1,7 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.controladores;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaEntradaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios.CategoriaService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -44,7 +45,7 @@ public class CategoriaController {
 
     @PostMapping
     public ResponseEntity<CategoriaDTO> crearCategoria(
-            @RequestBody CategoriaDTO dto,
+            @RequestBody CategoriaEntradaDTO dto,
             @RequestParam Integer idCuenta,
             @RequestHeader("Authorization") String authorizationHeader,
             UriComponentsBuilder builder) {
@@ -59,7 +60,7 @@ public class CategoriaController {
     @PutMapping("/{idCategoria}")
     public ResponseEntity<CategoriaDTO> modificarCategoria(
             @PathVariable Integer idCategoria,
-            @RequestBody CategoriaDTO dto,
+            @RequestBody CategoriaEntradaDTO dto,
             @RequestHeader("Authorization") String authorizationHeader) {
 
         String jwtToken = authorizationHeader.replace("Bearer ", "");
