@@ -1,6 +1,7 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -9,21 +10,20 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.security.JwtUtil;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.*;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionProductoDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoEntradaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Atributo;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Relacion;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.RelacionProducto;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.*;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.ProductoMapper;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.RelacionProductoMapper;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.AtributoMapper;
 @Service
 public class ProductoService {
@@ -76,23 +76,16 @@ public class ProductoService {
             throw new EntidadNoExistente();
         }
         Producto productoExistente = producto.get();
-        // Integer idCuenta = productoExistente.getCuentaId();
-        // Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
-        //         .map(UsuarioDTO::getId)
-        //         .orElseThrow(() -> new CredencialesNoValidas());
-        // if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
-        //     throw new SinPermisosSuficientes();
-        // }
         return productoMapper.toDTO(productoExistente);
     }
     
 
-    public List<Producto> getProductosPorIdCuenta(Integer idCuenta, String jwtToken) {
+    public Set<ProductoDTO> getProductosPorIdCuenta(Integer idCuenta, String jwtToken) {
         Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
                 .orElseThrow(CredencialesNoValidas::new);
         UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
-                .orElseThrow(() -> new EntidadNoExistente());
+                .orElseThrow(() -> new SinPermisosSuficientes());
     
         if (!usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR)) {
             boolean pertenece = usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken);
@@ -100,7 +93,9 @@ public class ProductoService {
                 throw new SinPermisosSuficientes();
             }
         }
-        return productoRepository.findByCuentaId(idCuenta); // comprobarlo
+        return productoRepository.findByCuentaId(idCuenta).stream()
+                .map(productoMapper::toDTO)
+                .collect(Collectors.toSet());
     }
 
     public List<Producto> getProductosPorIdCategoria(Integer idCategoria, String jwtToken) {
@@ -121,13 +116,13 @@ public class ProductoService {
     
 
     public ProductoDTO actualizarProducto(Integer idProducto,
-        ProductoDTO productoDTO, String jwtToken) {
+        ProductoEntradaDTO productoDTO, String jwtToken) {
         Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
             .orElseThrow(CredencialesNoValidas::new);
     
         UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
-            .orElseThrow(() -> new EntidadNoExistente());
+            .orElseThrow(() -> new SinPermisosSuficientes());
     
         Producto producto = productoRepository.findById(idProducto)
             .orElseThrow(() -> new EntidadNoExistente());
@@ -147,12 +142,29 @@ public class ProductoService {
             .collect(Collectors.toSet());
         producto.getCategorias().clear();
         producto.setCategorias(categorias);
-        Set<RelacionProducto> relaciones = productoDTO.getRelaciones().stream()
-                .map(RelacionProductoMapper::toEntity)
-                .collect(Collectors.toSet());
 
-        producto.getRelacionesDestino().clear();
-        producto.getRelacionesDestino().addAll(relaciones);
+        if (productoDTO.getRelaciones() != null && !productoDTO.getRelaciones().isEmpty()) {
+            Set<RelacionProducto> relaciones = productoDTO.getRelaciones().stream()
+                .map(dto -> {
+                    RelacionProducto rel = new RelacionProducto();
+    
+                    Relacion tipoRelacion = relacionRepository.findById(dto.getRelacion().getId())
+                        .orElseThrow(() -> new EntidadNoExistente());
+                    rel.setTipoRelacion(tipoRelacion);
+    
+                    rel.setProductoOrigen(producto);
+    
+                    Producto destino = productoRepository.findById(dto.getIdProductoDestino())
+                        .orElseThrow(() -> new EntidadNoExistente());
+                    rel.setProductoDestino(destino);
+    
+                    return rel;
+                })
+                .collect(Collectors.toSet());
+    
+            producto.getRelacionesOrigen().clear();
+            producto.getRelacionesOrigen().addAll(relaciones);
+        }
 
         // añadir los atributos
         Set<Atributo> atributos = productoDTO.getAtributos().stream()
@@ -164,27 +176,23 @@ public class ProductoService {
     }
     
 
-    public Producto crearProducto(ProductoDTO productoDTO, Integer idCuenta, String jwtToken) {
+    public ProductoDTO crearProducto(ProductoEntradaDTO productoDTO, Integer idCuenta, String jwtToken) {
         // comprobar que el usuario tiene permisos para crear el producto
         Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
             .orElseThrow(CredencialesNoValidas::new);
     
         UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
-            .orElseThrow(() -> new EntidadNoExistente());
+            .orElseThrow(() -> new SinPermisosSuficientes());
         System.out.println("Usuario: ");
         if(!usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken)){
             System.out.println("Usuario no pertenece a la cuenta");
             throw new SinPermisosSuficientes();
         }
     
-        Producto producto = productoMapper.toEntity(productoDTO);
+        Producto producto = productoMapper.toEntityEntrada(productoDTO);
         // comprobar que incluye categorías
         if (productoDTO.getCategorias() == null || productoDTO.getCategorias().isEmpty()) {
-            throw new EntidadNoExistente();
-        }
-        // comprobar que incluye relaciones
-        if (productoDTO.getRelaciones() == null || productoDTO.getRelaciones().isEmpty()) {
             throw new EntidadNoExistente();
         }
         
@@ -195,12 +203,11 @@ public class ProductoService {
         }
         // comprobar que no se exceden los límites fijados por el plan de la cuenta
         int productosActuales = productoRepository.findByCuentaId(idCuenta).size();
-        if (!cuentaService.puedeCrearProducto(Long.valueOf(idCuenta), productosActuales)) {
+        if (!cuentaService.puedeCrearProducto(Long.valueOf(idCuenta), productosActuales, usuario)) {
             System.out.println("No se puede crear el producto");
             throw new SinPermisosSuficientes();
         }
         // crear el producto
-        producto.setId(productoDTO.getId());
         producto.setGtin(productoDTO.getGtin());
         producto.setSku(productoDTO.getSku());
         producto.setNombre(productoDTO.getNombre());
@@ -209,26 +216,16 @@ public class ProductoService {
         producto.setModificado(null); // no modificado al crear
         producto.setCuentaId(idCuenta);
 
-        // añadir las categorías
+        //añadir las categorías
         Set<Categoria> categorias = productoDTO.getCategorias().stream()
-            .map(dto -> categoriaRepository.findById(dto.getId())
-            .orElseThrow(() -> new EntidadNoExistente()))
-            .collect(Collectors.toSet());
-        System.out.println("Categorias");
+                .map(dto -> categoriaRepository.findById(dto.getId())
+                        .orElseThrow(() -> new EntidadNoExistente()))
+                .collect(Collectors.toSet());
         producto.setCategorias(categorias);
-        // añadir las relaciones origen y destino
-        for (RelacionProductoDTO relacionDTO : productoDTO.getRelaciones()) {
-            Integer tipoRelacionId = relacionDTO.getRelacion().getId();
-                if (!relacionRepository.existsById(tipoRelacionId)) {
-                    System.out.println("La relación no existe");
-                    throw new EntidadNoExistente();
-                }
-        }
 
-        Set<RelacionProducto> relaciones = productoDTO.getRelaciones().stream()
-            .map(RelacionProductoMapper::toEntity)
-            .collect(Collectors.toSet());
-        producto.setRelacionesDestino(relaciones);
+        producto.setRelacionesOrigen(Collections.emptySet());
+        producto.setRelacionesDestino(Collections.emptySet());
+
         
         // añadir los atributos
         Set<Atributo> atributos = productoDTO.getAtributos().stream()
@@ -237,7 +234,7 @@ public class ProductoService {
         producto.setAtributos(atributos);
         
         Producto nuevoProducto = productoRepository.save(producto);
-        return nuevoProducto;
+        return productoMapper.toDTO(nuevoProducto);
     }
 
     public void eliminarProducto(Integer id, String jwtToken) {

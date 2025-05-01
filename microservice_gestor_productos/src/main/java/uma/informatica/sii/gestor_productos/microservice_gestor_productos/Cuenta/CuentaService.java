@@ -2,12 +2,12 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuent
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.RequestEntity;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.security.JwtUtil;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.Usuario;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioDTO;
 
 import java.net.URI;
 import java.util.Optional;
@@ -55,20 +55,33 @@ public class CuentaService {
         return Optional.empty();
     }
 
-    public boolean puedeCrearProducto(Long cuentaId, int productosActuales) {
-        return getCuentaPorId(cuentaId)
-                .map(cuenta -> productosActuales < cuenta.getPlan().getMaxProductos())
-                .orElse(false);
+    public boolean puedeCrearProducto(Long cuentaId, int productosActuales, UsuarioDTO usuario) {
+        boolean ok = false;
+        Optional<CuentaDTO> cuenta = getCuentaPorId(cuentaId);
+        if(usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR)) ok=true;
+
+        if(productosActuales < cuenta.get().getPlan().getMaxProductos()) ok = true;
+
+        return ok;
+    } 
+
+    public boolean puedeCrearRelacion(Long cuentaId, int relacionesActuales, UsuarioDTO usuario) {
+        boolean ok = false;
+        Optional<CuentaDTO> cuenta = getCuentaPorId(cuentaId);
+        if(usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR)) ok=true;
+
+        if(relacionesActuales < cuenta.get().getPlan().getMaxProductos()) ok = true;
+
+        return ok;
     }
-    public boolean puedeCrearRelacion(Long cuentaId, int relacionesActuales) {
-        return getCuentaPorId(cuentaId)
-                .map(cuenta -> relacionesActuales < cuenta.getPlan().getMaxRelaciones())
-                .orElse(false);
-    }
-    public boolean puedeCrearCategoria(Long cuentaId, int categoriasActuales) {
-        return getCuentaPorId(cuentaId)
-                .map(cuenta -> categoriasActuales < cuenta.getPlan().getMaxCategoriasActivos())
-                .orElse(false); 
+    public boolean puedeCrearCategoria(Long cuentaId, int categoriasActuales, UsuarioDTO usuario) {
+        boolean ok = false;
+        Optional<CuentaDTO> cuenta = getCuentaPorId(cuentaId);
+        if(usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR)) ok=true;
+
+        if(categoriasActuales < cuenta.get().getPlan().getMaxProductos()) ok = true;
+
+        return ok;
     }
     
 }

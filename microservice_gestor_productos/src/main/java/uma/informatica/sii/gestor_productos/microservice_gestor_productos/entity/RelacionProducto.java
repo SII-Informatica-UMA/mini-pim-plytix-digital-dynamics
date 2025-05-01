@@ -26,11 +26,13 @@ public class RelacionProducto {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         RelacionProducto that = (RelacionProducto) o;
-        return Objects.equals(id, that.id);
+        return Objects.equals(tipoRelacion, that.tipoRelacion) &&
+                Objects.equals(productoOrigen, that.productoOrigen) &&
+                Objects.equals(productoDestino, that.productoDestino);
     }
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return Objects.hash(tipoRelacion, productoOrigen, productoDestino);
     }
     // toString
     @Override

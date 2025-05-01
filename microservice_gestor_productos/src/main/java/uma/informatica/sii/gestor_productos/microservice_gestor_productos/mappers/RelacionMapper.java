@@ -3,7 +3,7 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappe
 import org.springframework.stereotype.Component;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionDTO;
-//import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionProductoDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionEntradaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Relacion;
 
 @Component
@@ -20,6 +20,13 @@ public class RelacionMapper {
     public Relacion toEntity(RelacionDTO dto) {
         Relacion relacion = new Relacion();
         relacion.setId(dto.getId());
+        relacion.setNombre(dto.getNombre());
+        relacion.setDescripcion(dto.getDescripcion());
+        return relacion;
+    }
+
+    public Relacion toEntityEntrada(RelacionEntradaDTO dto) {
+        Relacion relacion = new Relacion();
         relacion.setNombre(dto.getNombre());
         relacion.setDescripcion(dto.getDescripcion());
         return relacion;

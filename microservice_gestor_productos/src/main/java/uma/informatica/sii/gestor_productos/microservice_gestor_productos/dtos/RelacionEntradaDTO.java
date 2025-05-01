@@ -6,7 +6,7 @@ import lombok.*;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class CategoriaDTO {
-    private Integer id;
+public class RelacionEntradaDTO {
     private String nombre;
+    private String descripcion;
 }

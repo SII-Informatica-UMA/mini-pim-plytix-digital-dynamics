@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 @Entity
 public class Producto{
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     @Column(unique = true, nullable = false)
     private String gtin;
@@ -27,7 +28,7 @@ public class Producto{
     @Column(nullable = false)
     private Integer cuentaId;
 
-    @ManyToMany (fetch = FetchType.EAGER ,cascade = {CascadeType.MERGE})
+    @ManyToMany (fetch = FetchType.EAGER ,cascade = {CascadeType.MERGE, CascadeType.PERSIST})
     @JoinTable(
         name = "producto_categoria",
         joinColumns = @JoinColumn(name = "producto_id", foreignKey = @ForeignKey(name = "FK_producto_categoria_producto")),

@@ -9,8 +9,7 @@ import lombok.*;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class ProductoDTO {
-    private Integer id;
+public class ProductoEntradaDTO {
     private String gtin;
     private String sku;
     private String nombre;

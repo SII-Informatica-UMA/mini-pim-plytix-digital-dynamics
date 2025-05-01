@@ -2,6 +2,7 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuar
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.RequestEntity;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -51,7 +52,6 @@ public class UsuarioService {
         var peticion = RequestEntity.get(baseUrl + "/usuario")
             .header("Authorization", "Bearer " +  jwtToken)
             .build();
-        System.out.println("Peticion: " + peticion);
         try {
             return Optional.of(restTemplate.exchange(peticion, UsuarioDTO[].class).getBody()[0]);
         } catch (Exception e) {
@@ -60,32 +60,24 @@ public class UsuarioService {
     }
 
     public boolean usuarioPerteneceACuenta(Integer idCuenta, Long idUsuario, String jwtTokenDelUsuario) {
-        return idCuenta.equals(1) && idUsuario.equals(1L);
-    //// Construir la URI al servicio externo de usuarios
-    //var uri = UriComponentsBuilder
-    //    .fromUriString(baseUrl + "/cuenta/{idCuenta}/usuarios")
-    //    .buildAndExpand(idCuenta)
-    //    .toUri();
-    //
-    //// Crear la petición con el JWT del usuario
-    //var peticion = RequestEntity
-    //    .get(uri)
-    //    .header("Authorization", "Bearer " + jwtTokenDelUsuario)
-    //    .build();
-    //
-    //try {
-    //    ResponseEntity<UsuarioDTO[]> respuesta = restTemplate.exchange(peticion, UsuarioDTO[].class);
-    //
-    //    if (respuesta.getStatusCode().is2xxSuccessful() && respuesta.getBody() != null) {
-    //        return Arrays.stream(respuesta.getBody())
-    //            .anyMatch(usuario -> usuario.getId().equals(idUsuario));
-    //    }
-    //} catch (Exception e) {
-    //    // Puedes loguear o lanzar una excepción si prefieres
-    //    System.err.println("Error consultando los usuarios de la cuenta: " + e.getMessage());
-    //}
-
-    //return false;
-}
+        Optional<UsuarioDTO> usuario = getUsuario(idUsuario,jwtTokenDelUsuario);
+        boolean pertenece = false;
+        if(!usuario.get().getRole().equals(Usuario.Rol.ADMINISTRADOR)){
+            var peticion = RequestEntity.get(baseUrl + "/cuenta/"+idCuenta+"/usuarios")
+                .header("Authorization", "Bearer "+jwtTokenDelUsuario)
+                .build();
+            ResponseEntity<UsuarioDTO[]> respuesta = restTemplate.exchange(peticion,UsuarioDTO[].class);
+            UsuarioDTO[] lista = respuesta.getBody();
+            
+            for (UsuarioDTO usu : lista) {
+                if(usu.getId().equals(idUsuario)){
+                    pertenece=true;
+                }
+            };
+        }else{
+            pertenece=true;
+        }
+            return pertenece;
+    }
 
 }

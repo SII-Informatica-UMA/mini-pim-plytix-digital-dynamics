@@ -1,6 +1,5 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import java.util.List;
 import java.util.Optional;
