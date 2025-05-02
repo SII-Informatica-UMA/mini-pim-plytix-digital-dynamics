@@ -70,7 +70,7 @@ public class CategoriaService {
     public CategoriaDTO crearCategoria(CategoriaEntradaDTO dto, Integer idCuenta, String jwtToken) {
         Optional<Categoria> existente = categoriaRepository.findByNombre(dto.getNombre());
         if (existente.isPresent()) {
-            throw new EntidadNoExistente();
+            throw new CredencialesNoValidas();
         }
         
         Categoria nueva = CategoriaMapper.toEntityEntrada(dto);

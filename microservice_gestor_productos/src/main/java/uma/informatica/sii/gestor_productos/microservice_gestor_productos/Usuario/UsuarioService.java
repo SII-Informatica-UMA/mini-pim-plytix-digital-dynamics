@@ -60,24 +60,34 @@ public class UsuarioService {
     }
 
     public boolean usuarioPerteneceACuenta(Integer idCuenta, Long idUsuario, String jwtTokenDelUsuario) {
-        Optional<UsuarioDTO> usuario = getUsuario(idUsuario,jwtTokenDelUsuario);
-        boolean pertenece = false;
-        if(!usuario.get().getRole().equals(Usuario.Rol.ADMINISTRADOR)){
-            var peticion = RequestEntity.get(baseUrl + "/cuenta/"+idCuenta+"/usuarios")
-                .header("Authorization", "Bearer "+jwtTokenDelUsuario)
-                .build();
-            ResponseEntity<UsuarioDTO[]> respuesta = restTemplate.exchange(peticion,UsuarioDTO[].class);
-            UsuarioDTO[] lista = respuesta.getBody();
-            
-            for (UsuarioDTO usu : lista) {
-                if(usu.getId().equals(idUsuario)){
-                    pertenece=true;
-                }
-            };
-        }else{
-            pertenece=true;
+        // Obtenemos los datos del usuario usando el token del sistema
+        Optional<UsuarioDTO> usuario = getUsuario(idUsuario, jwtTokenDelUsuario);
+        // Si no se encuentra el usuario, no pertenece
+        if (usuario.isEmpty()) {
+            return false;
         }
-            return pertenece;
+        // Si el usuario es administrador, siempre pertenece
+        if (usuario.get().getRole().equals(Usuario.Rol.ADMINISTRADOR)) {
+            return true;
+        }
+        // Usamos el token del sistema para hacer la consulta interna a la cuenta
+        String appJwtToken = jwtUtil.generateToken(usuarioAplicacion);
+        var peticion = RequestEntity.get(baseUrl + "/cuenta/" + idCuenta + "/usuarios")
+            .header("Authorization", "Bearer " + appJwtToken)
+            .build();
+        try {
+            ResponseEntity<UsuarioDTO[]> respuesta = restTemplate.exchange(peticion, UsuarioDTO[].class);
+            UsuarioDTO[] lista = respuesta.getBody();
+    
+            for (UsuarioDTO usu : lista) {
+                if (usu.getId().equals(idUsuario)) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            // Puedes registrar el error si lo necesitas
+            return false;
+        }
     }
-
 }
