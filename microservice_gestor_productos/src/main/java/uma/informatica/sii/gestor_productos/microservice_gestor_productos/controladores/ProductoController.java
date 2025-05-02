@@ -38,23 +38,18 @@ public class ProductoController {
         if (count != 1) {
             return ResponseEntity.badRequest().body("Debe proporcionar exactamente un parámetro de consulta.");
         }
-
         if (idProducto != null) {
             return ResponseEntity.ok(productoService.getProductoPorId(idProducto, jwtToken));
         }
-
-        
         if (idCuenta != null) {
             return ResponseEntity.ok(productoService.getProductosPorIdCuenta(idCuenta, jwtToken));
         }
-        
         if (idCategoria != null) {
             return ResponseEntity.ok(productoService.getProductosPorIdCategoria(idCategoria, jwtToken));
         }
         if (gtin != null) {
             return ResponseEntity.ok(productoService.getProductoPorGtin(gtin, jwtToken));
         }
-
         return ResponseEntity.badRequest().build();
     }
 

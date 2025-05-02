@@ -1,12 +1,14 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.catalina.mapper.Mapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -98,20 +100,33 @@ public class ProductoService {
                 .collect(Collectors.toSet());
     }
 
-    public List<Producto> getProductosPorIdCategoria(Integer idCategoria, String jwtToken) {
-        List<Producto> productos = productoRepository.findProductosByCategoriaId(idCategoria);
+    public Set<ProductoDTO> getProductosPorIdCategoria(Integer idcategoria,String jwtToken) {
+
+        Optional<Categoria> categoria = categoriaRepository.findById(idcategoria);
+        if (categoria.isEmpty()) {
+            throw new EntidadNoExistente();
+        }
+
+        UsuarioDTO idUsuario = usuarioService.getUsuarioConectado(jwtToken).get();
+        boolean idValido=usuarioService.usuarioPerteneceACuenta(categoria.get().getCuentaId(), idUsuario.getId(), jwtToken);
+            if(!idValido) throw new SinPermisosSuficientes();
+
+        Set<Producto> productos = productoRepository.findProductosByCategoriaId(idcategoria);
         if (productos.isEmpty()) {
             throw new EntidadNoExistente();
         }
-        
-        Integer idCuenta = productos.get(0).getCuentaId();
-        Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
-                .map(UsuarioDTO::getId)
-                .orElseThrow(() -> new CredencialesNoValidas());
-        if (!usuarioService.usuarioPerteneceACuenta(idCuenta, idUsuario, jwtToken)) {
+        // Filtrar productos a los que el usuario tiene acceso
+        Set<Producto> productosFiltrados = productos.stream()
+                .filter(p -> usuarioService.usuarioPerteneceACuenta(p.getCuentaId(), idUsuario.getId(), jwtToken))
+                .collect(Collectors.toSet());
+
+        if (productosFiltrados.isEmpty()) {
             throw new SinPermisosSuficientes();
         }
-        return productos;
+        Set<ProductoDTO> productosDTO = productosFiltrados.stream()
+        .map(productoMapper::toDTO)
+        .collect(Collectors.toSet());
+        return productosDTO;
     }
     
 
@@ -130,11 +145,15 @@ public class ProductoService {
         if(!usuarioService.usuarioPerteneceACuenta(producto.getCuentaId(), usuario.getId(), jwtToken)){
             throw new SinPermisosSuficientes();
         }
-    
+        Optional<Producto> prOptional= productoRepository.findByGtin(productoDTO.getGtin());
+            if (prOptional.isPresent() && prOptional.get().getId() != producto.getId()) {
+                System.out.println("El GTIN ya existe");
+                throw new SinPermisosSuficientes();
+        }
         producto.setNombre(productoDTO.getNombre());
         producto.setTextoCorto(productoDTO.getTextoCorto());
         producto.setMiniatura(productoDTO.getMiniatura());
-        producto.setModificado(LocalDateTime.now());
+        producto.setModificado(OffsetDateTime.now());
         
         Set<Categoria> categorias = productoDTO.getCategorias().stream()
         .map(dto -> categoriaRepository.findById(dto.getId())

@@ -76,6 +76,6 @@ public class CategoriaController {
         String jwtToken = authorizationHeader.replace("Bearer ", "");
 
         categoriaService.eliminarCategoria(idCategoria, jwtToken);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }

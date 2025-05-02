@@ -3,6 +3,7 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.entit
 import java.util.*;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 public class Producto{
@@ -16,8 +17,8 @@ public class Producto{
     @Column(length = 255)
     private String textoCorto;
     @Column(nullable = false, updatable = false)
-    private LocalDateTime creado;
-    private LocalDateTime modificado;
+    private OffsetDateTime  creado;
+    private OffsetDateTime modificado;
     private String miniatura;
 
     @ElementCollection(fetch = FetchType.EAGER)
@@ -74,8 +75,8 @@ public class Producto{
 
     @PrePersist
     public void prePersist() {
-        this.creado = LocalDateTime.now();
-        this.modificado = LocalDateTime.now();
+        this.creado = OffsetDateTime.now();
+        this.modificado = OffsetDateTime.now();
     }
 
     // Getters y Setters
@@ -94,10 +95,10 @@ public class Producto{
     public String getTextoCorto() { return textoCorto; }
     public void setTextoCorto(String textoCorto) { this.textoCorto = textoCorto; }
 
-    public LocalDateTime getCreado() { return creado; }
+    public OffsetDateTime getCreado() { return creado; }
 
-    public LocalDateTime getModificado() { return modificado; }
-    public void setModificado(LocalDateTime modificado) { this.modificado = modificado; }
+    public OffsetDateTime getModificado() { return modificado; }
+    public void setModificado(OffsetDateTime modificado) { this.modificado = modificado; }
 
     public String getMiniatura() { return miniatura; }
     public void setMiniatura(String miniatura) { this.miniatura = miniatura; }
