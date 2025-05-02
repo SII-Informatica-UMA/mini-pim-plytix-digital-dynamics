@@ -13,12 +13,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.*;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoEntradaDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionProductoDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Atributo;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
@@ -39,17 +41,19 @@ public class ProductoService {
     private final ProductoMapper productoMapper;
     private final CuentaService cuentaService;
     private final RelacionRepository relacionRepository;
-
+    private final RelacionProductoRepository relacionProductoRepository;
     public ProductoService(ProductoRepository productoRepository, 
     UsuarioService usuarioService, CategoriaRepository categoriaRepository, 
     ProductoMapper productoMapper, CuentaService cuentaService, 
-    RelacionRepository relacionRepository) {
+    RelacionRepository relacionRepository,
+    RelacionProductoRepository relacionProductoRepository) {
         this.productoRepository = productoRepository;
         this.usuarioService = usuarioService;
         this.categoriaRepository = categoriaRepository;
         this.productoMapper = productoMapper;
         this.cuentaService = cuentaService;
         this.relacionRepository = relacionRepository;
+        this.relacionProductoRepository = relacionProductoRepository;
     }
 
 
@@ -132,67 +136,109 @@ public class ProductoService {
 
     public ProductoDTO actualizarProducto(Integer idProducto,
         ProductoEntradaDTO productoDTO, String jwtToken) {
+        
+        // 1) Validar token y usuario
         Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
             .orElseThrow(CredencialesNoValidas::new);
-    
         UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
-            .orElseThrow(() -> new SinPermisosSuficientes());
-    
+            .orElseThrow(EntidadNoExistente::new);
+
+        // 2) Recuperar entidad
         Producto producto = productoRepository.findById(idProducto)
-            .orElseThrow(() -> new EntidadNoExistente());
-    
-        if(!usuarioService.usuarioPerteneceACuenta(producto.getCuentaId(), usuario.getId(), jwtToken)){
+            .orElseThrow(EntidadNoExistente::new);
+
+        // 3) Comprobar permisos sobre la cuenta
+        if (!usuarioService.usuarioPerteneceACuenta(
+                producto.getCuentaId(), usuarioId, jwtToken)) {
             throw new SinPermisosSuficientes();
         }
-        Optional<Producto> prOptional= productoRepository.findByGtin(productoDTO.getGtin());
-            if (prOptional.isPresent() && prOptional.get().getId() != producto.getId()) {
-                System.out.println("El GTIN ya existe");
-                throw new SinPermisosSuficientes();
-        }
+
+        // 4) Validar unicidad de GTIN
+        productoRepository.findByGtin(productoDTO.getGtin())
+            .filter(p -> !p.getId().equals(idProducto))
+            .ifPresent(p -> { throw new SinPermisosSuficientes(); });
+
+        // 5) Actualizar campos básicos
         producto.setNombre(productoDTO.getNombre());
         producto.setTextoCorto(productoDTO.getTextoCorto());
         producto.setMiniatura(productoDTO.getMiniatura());
         producto.setModificado(OffsetDateTime.now());
-        
+
+        // 6) Actualizar categorías
         Set<Categoria> categorias = productoDTO.getCategorias().stream()
-        .map(dto -> categoriaRepository.findById(dto.getId())
-            .orElseThrow(() -> new EntidadNoExistente()))
+            .map(dto -> categoriaRepository.findById(dto.getId())
+                .orElseThrow(EntidadNoExistente::new))
             .collect(Collectors.toSet());
         producto.getCategorias().clear();
-        producto.setCategorias(categorias);
+        producto.getCategorias().addAll(categorias);
 
-        if (productoDTO.getRelaciones() != null && !productoDTO.getRelaciones().isEmpty()) {
-            Set<RelacionProducto> relaciones = productoDTO.getRelaciones().stream()
-                .filter(dto -> !dto.getIdProductoDestino().equals(producto.getId()))
-                .map(dto -> {
-                    RelacionProducto rel = new RelacionProducto();
-    
-                    Relacion tipoRelacion = relacionRepository.findById(dto.getRelacion().getId())
-                        .orElseThrow(() -> new EntidadNoExistente());
-                    rel.setTipoRelacion(tipoRelacion);
-    
-                    rel.setProductoOrigen(producto);
-    
-                    Producto destino = productoRepository.findById(dto.getIdProductoDestino())
-                        .orElseThrow(() -> new EntidadNoExistente());
-                    rel.setProductoDestino(destino);
-    
-                    return rel;
-                })
-                .collect(Collectors.toSet());
-    
-            producto.getRelacionesOrigen().clear();
-            producto.getRelacionesOrigen().addAll(relaciones);
+        // 7) Eliminar relaciones obsoletas y añadir nuevas, en parejo
+        // Destinos que el cliente quiere mantener
+        Set<Integer> destinosNuevos = productoDTO.getRelaciones() != null
+            ? productoDTO.getRelaciones().stream()
+                .map(RelacionProductoDTO::getIdProductoDestino)
+                .collect(Collectors.toSet())
+            : Collections.emptySet();
+
+        // Relaciones actuales A→X
+        List<RelacionProducto> actuales = relacionProductoRepository.findByProductoOrigen(producto);
+
+        // 7a) Borrar las que ya no están en destinosNuevos (tanto A→B como B→A)
+        for (RelacionProducto relActual : actuales) {
+            Integer destId = relActual.getProductoDestino().getId();
+            if (!destinosNuevos.contains(destId)) {
+                // A→B
+                relacionProductoRepository.delete(relActual);
+                // B→A
+                relacionProductoRepository
+                    .findByProductoOrigenAndProductoDestino(
+                        productoRepository.getOne(destId), producto)
+                    .ifPresent(relacionProductoRepository::delete);
+            }
         }
 
-        // añadir los atributos
+        // 7b) Crear las nuevas en ambos sentidos
+        if (productoDTO.getRelaciones() != null) {
+            for (RelacionProductoDTO dto : productoDTO.getRelaciones()) {
+                Integer destId = dto.getIdProductoDestino();
+                if (destId.equals(producto.getId())) continue; // skip self
+
+                boolean existe = actuales.stream()
+                    .anyMatch(r -> r.getProductoDestino().getId().equals(destId));
+                if (!existe) {
+                    // recuperar destino y tipo de relación
+                    Producto destino = productoRepository.findById(destId)
+                        .orElseThrow(EntidadNoExistente::new);
+                    Relacion tipo = relacionRepository.findById(dto.getRelacion().getId())
+                        .orElseThrow(EntidadNoExistente::new);
+
+                    // A→B
+                    RelacionProducto relAB = new RelacionProducto();
+                    relAB.setProductoOrigen(producto);
+                    relAB.setProductoDestino(destino);
+                    relAB.setTipoRelacion(tipo);
+                    relacionProductoRepository.save(relAB);
+
+                    // B→A
+                    RelacionProducto relBA = new RelacionProducto();
+                    relBA.setProductoOrigen(destino);
+                    relBA.setProductoDestino(producto);
+                    relBA.setTipoRelacion(tipo);
+                    relacionProductoRepository.save(relBA);
+                }
+            }
+        }
+
+        // 8) Actualizar atributos
         Set<Atributo> atributos = productoDTO.getAtributos().stream()
-                .map(AtributoMapper::toEntity)
-                .collect(Collectors.toSet());
+            .map(AtributoMapper::toEntity)
+            .collect(Collectors.toSet());
         producto.setAtributos(atributos);
-        Producto actualizado = productoRepository.save(producto);
-        return productoMapper.toDTO(actualizado);
+
+        // 9) Guardar y devolver DTO
+        Producto guardado = productoRepository.save(producto);
+        return productoMapper.toDTO(guardado);
     }
     
 
