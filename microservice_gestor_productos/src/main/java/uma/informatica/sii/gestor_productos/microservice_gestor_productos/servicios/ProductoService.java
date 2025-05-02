@@ -164,6 +164,7 @@ public class ProductoService {
 
         if (productoDTO.getRelaciones() != null && !productoDTO.getRelaciones().isEmpty()) {
             Set<RelacionProducto> relaciones = productoDTO.getRelaciones().stream()
+                .filter(dto -> !dto.getIdProductoDestino().equals(producto.getId()))
                 .map(dto -> {
                     RelacionProducto rel = new RelacionProducto();
     
