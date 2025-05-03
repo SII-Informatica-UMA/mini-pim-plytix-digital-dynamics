@@ -2,7 +2,6 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.entit
 
 import java.util.*;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 @Entity

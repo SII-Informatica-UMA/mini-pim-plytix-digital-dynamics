@@ -1,17 +1,13 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.apache.catalina.mapper.Mapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
@@ -29,6 +25,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.excepciones.*;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.ProductoMapper;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.AtributoMapper;
+
 @Service
 public class ProductoService {
 
@@ -141,7 +138,7 @@ public class ProductoService {
         Long usuarioId = usuarioService.getUsuarioConectado(jwtToken)
             .map(UsuarioDTO::getId)
             .orElseThrow(CredencialesNoValidas::new);
-        UsuarioDTO usuario = usuarioService.getUsuario(usuarioId, jwtToken)
+        usuarioService.getUsuario(usuarioId, jwtToken)
             .orElseThrow(EntidadNoExistente::new);
 
         // 2) Recuperar entidad
@@ -193,7 +190,7 @@ public class ProductoService {
                 // B→A
                 relacionProductoRepository
                     .findByProductoOrigenAndProductoDestino(
-                        productoRepository.getOne(destId), producto)
+                        productoRepository.getReferenceById(destId), producto)
                     .ifPresent(relacionProductoRepository::delete);
             }
         }

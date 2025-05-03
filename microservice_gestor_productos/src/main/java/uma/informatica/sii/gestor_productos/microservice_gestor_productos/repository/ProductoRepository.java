@@ -1,8 +1,6 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
-
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 

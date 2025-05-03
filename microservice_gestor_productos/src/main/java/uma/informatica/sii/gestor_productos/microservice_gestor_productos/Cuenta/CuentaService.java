@@ -57,27 +57,15 @@ public class CuentaService {
 
     public boolean puedeCrearProducto(Long cuentaId, int productosActuales, UsuarioDTO usuario) {
         Optional<CuentaDTO> cuenta = getCuentaPorId(cuentaId);
-        //boolean ok = false;
-        //if(usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR)) ok=true;
-        //if(productosActuales < cuenta.get().getPlan().getMaxProductos()) ok = true;
-        //return ok;
         return (usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR) || productosActuales < cuenta.get().getPlan().getMaxProductos() ? true : false);
     } 
 
     public boolean puedeCrearRelacion(Long cuentaId, int relacionesActuales, UsuarioDTO usuario) {
         Optional<CuentaDTO> cuenta = getCuentaPorId(cuentaId);
-        //boolean ok = false;
-        //if(usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR)) ok=true;
-        //
-        //! if(relacionesActuales < cuenta.get().getPlan().getMaxProductos()) ok = true;
         return (usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR) || relacionesActuales < cuenta.get().getPlan().getMaxRelaciones() ? true : false);
     }
     public boolean puedeCrearCategoria(Long cuentaId, int categoriasActuales, UsuarioDTO usuario) {
         Optional<CuentaDTO> cuenta = getCuentaPorId(cuentaId);
-        // boolean ok = false;
-        // if(usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR)) ok=true;
-        // if(categoriasActuales < cuenta.get().getPlan().getMaxProductos()) ok = true;
-        // return ok;
         return (usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR) || categoriasActuales < cuenta.get().getPlan().getMaxCategoriasProductos() ? true : false);
     }
     
