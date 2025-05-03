@@ -87,7 +87,7 @@ public class CategoriaService {
                 .orElseThrow(() -> new SinPermisosSuficientes());
 
         int categoriasActuales = categoriaRepository.findByCuentaId(idCuenta).size();
-        if (!cuentaService.puedeCrearCategoria(Long.valueOf(idCuenta), categoriasActuales, usuario)) {
+        if (!cuentaService.puedeCrearCategoria(idCuenta, categoriasActuales, usuario)) {
             throw new SinPermisosSuficientes();
         }
         nueva.setCuentaId(idCuenta);

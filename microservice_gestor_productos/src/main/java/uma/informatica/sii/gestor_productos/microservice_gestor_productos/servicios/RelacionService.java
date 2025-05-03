@@ -94,7 +94,7 @@ public class RelacionService {
         
 
         int relacionesActuales = relacionRepository.findAllByCuentaId(idCuenta).size();
-        if (!cuentaService.puedeCrearRelacion(Long.valueOf(idCuenta), relacionesActuales, usuario)) {
+        if (!cuentaService.puedeCrearRelacion(idCuenta, relacionesActuales, usuario)) {
             throw new SinPermisosSuficientes();
         }
         

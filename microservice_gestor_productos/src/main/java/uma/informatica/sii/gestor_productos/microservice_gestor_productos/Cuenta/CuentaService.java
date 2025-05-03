@@ -26,7 +26,7 @@ public class CuentaService {
         this.jwtUtil = jwtUtil;
     }
 
-    public Optional<CuentaDTO> getCuentaPorId(Long cuentaId) {
+    public Optional<CuentaDTO> getCuentaPorId(Integer cuentaId) {
         URI uri = UriComponentsBuilder.fromUriString(baseUrl + "/cuenta")
                 .queryParam("idCuenta", cuentaId)
                 .build()
@@ -55,16 +55,16 @@ public class CuentaService {
         return Optional.empty();
     }
 
-    public boolean puedeCrearProducto(Long cuentaId, int productosActuales, UsuarioDTO usuario) {
+    public boolean puedeCrearProducto(Integer cuentaId, int productosActuales, UsuarioDTO usuario) {
         Optional<CuentaDTO> cuenta = getCuentaPorId(cuentaId);
         return (usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR) || productosActuales < cuenta.get().getPlan().getMaxProductos() ? true : false);
     } 
 
-    public boolean puedeCrearRelacion(Long cuentaId, int relacionesActuales, UsuarioDTO usuario) {
+    public boolean puedeCrearRelacion(Integer cuentaId, int relacionesActuales, UsuarioDTO usuario) {
         Optional<CuentaDTO> cuenta = getCuentaPorId(cuentaId);
         return (usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR) || relacionesActuales < cuenta.get().getPlan().getMaxRelaciones() ? true : false);
     }
-    public boolean puedeCrearCategoria(Long cuentaId, int categoriasActuales, UsuarioDTO usuario) {
+    public boolean puedeCrearCategoria(Integer cuentaId, int categoriasActuales, UsuarioDTO usuario) {
         Optional<CuentaDTO> cuenta = getCuentaPorId(cuentaId);
         return (usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR) || categoriasActuales < cuenta.get().getPlan().getMaxCategoriasProductos() ? true : false);
     }

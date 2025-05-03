@@ -178,16 +178,16 @@ public class ProductoService {
                 .collect(Collectors.toSet())
             : Collections.emptySet();
 
-        // Relaciones actuales A→X
+        // Relaciones actuales A->X
         List<RelacionProducto> actuales = relacionProductoRepository.findByProductoOrigen(producto);
 
-        // 7a) Borrar las que ya no están en destinosNuevos (tanto A→B como B→A)
+        // 7a) Borrar las que ya no están en destinosNuevos (tanto A->B como B->A)
         for (RelacionProducto relActual : actuales) {
             Integer destId = relActual.getProductoDestino().getId();
             if (!destinosNuevos.contains(destId)) {
-                // A→B
+                // A->B
                 relacionProductoRepository.delete(relActual);
-                // B→A
+                // B->A
                 relacionProductoRepository
                     .findByProductoOrigenAndProductoDestino(
                         productoRepository.getReferenceById(destId), producto)
@@ -199,7 +199,7 @@ public class ProductoService {
         if (productoDTO.getRelaciones() != null) {
             for (RelacionProductoDTO dto : productoDTO.getRelaciones()) {
                 Integer destId = dto.getIdProductoDestino();
-                if (destId.equals(producto.getId())) continue; // skip self
+                if (destId.equals(producto.getId())) continue; // no consigo mismo
 
                 boolean existe = actuales.stream()
                     .anyMatch(r -> r.getProductoDestino().getId().equals(destId));
@@ -210,14 +210,14 @@ public class ProductoService {
                     Relacion tipo = relacionRepository.findById(dto.getRelacion().getId())
                         .orElseThrow(EntidadNoExistente::new);
 
-                    // A→B
+                    // A->B
                     RelacionProducto relAB = new RelacionProducto();
                     relAB.setProductoOrigen(producto);
                     relAB.setProductoDestino(destino);
                     relAB.setTipoRelacion(tipo);
                     relacionProductoRepository.save(relAB);
 
-                    // B→A
+                    // B->A
                     RelacionProducto relBA = new RelacionProducto();
                     relBA.setProductoOrigen(destino);
                     relBA.setProductoDestino(producto);
@@ -266,7 +266,7 @@ public class ProductoService {
         }
         // comprobar que no se exceden los límites fijados por el plan de la cuenta
         int productosActuales = productoRepository.findByCuentaId(idCuenta).size();
-        if (!cuentaService.puedeCrearProducto(Long.valueOf(idCuenta), productosActuales, usuario)) {
+        if (!cuentaService.puedeCrearProducto(idCuenta, productosActuales, usuario)) {
             System.out.println("No se puede crear el producto");
             throw new SinPermisosSuficientes();
         }
