@@ -19,14 +19,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios.RelacionService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionEntradaDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.mappers.RelacionMapper;
 
 @RestController
 @RequestMapping("/relacion")
 public class RelacionController {
     private final RelacionService relacionService;
 
-    public RelacionController(RelacionService relacionService, RelacionMapper relacionMapper) {
+    public RelacionController(RelacionService relacionService) {
         this.relacionService = relacionService;
     }
 

@@ -85,7 +85,7 @@ public class RelacionService {
             .orElseThrow(CredencialesNoValidas::new);
     
         UsuarioDTO usuario = usuarioService.getUsuario(idUsuario, jwtToken)
-            .orElseThrow(() -> new EntidadNoExistente());
+            .orElseThrow(() -> new SinPermisosSuficientes());
         if(!usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken)){
             throw new SinPermisosSuficientes();
         }
