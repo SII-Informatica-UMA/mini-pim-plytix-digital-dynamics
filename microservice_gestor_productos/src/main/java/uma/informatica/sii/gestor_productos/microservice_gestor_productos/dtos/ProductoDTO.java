@@ -1,5 +1,4 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.Set;
 
