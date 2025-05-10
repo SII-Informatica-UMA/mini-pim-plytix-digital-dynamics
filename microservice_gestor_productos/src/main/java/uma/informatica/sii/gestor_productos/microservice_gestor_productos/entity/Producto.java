@@ -116,4 +116,5 @@ public class Producto{
 
     public Set<RelacionProducto> getRelacionesDestino() { return relacionesDestino; }
     public void setRelacionesDestino(Set<RelacionProducto> relacionesDestino) { this.relacionesDestino = relacionesDestino; }
+
 }
