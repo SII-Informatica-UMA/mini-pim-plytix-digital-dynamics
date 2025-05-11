@@ -135,7 +135,7 @@ class ProductoApplicationTests {
             };
         }
 
-          @Bean @Primary
+        @Bean @Primary
         SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
             http
             .csrf(csrf -> csrf.disable())
@@ -230,10 +230,11 @@ class ProductoApplicationTests {
             cat = new Categoria();
             cat.setNombre("CatX");
             cat.setCuentaId(2);
-            categoriaRepo.save(cat);
+            //categoriaRepo.save(cat);
 
             prod = new Producto();
             prod.setGtin("GTIN-123");
+            prod.setSku("SKU1");
             prod.setCuentaId(2);
             prod.setNombre("ProdA");
             prod.getCategorias().add(cat);
@@ -243,7 +244,7 @@ class ProductoApplicationTests {
         @Test @DisplayName("GET por idProducto → OK + DTO correcto")
         void getPorId() {
             ResponseEntity<ProductoDTO> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint("/producto?idProducto=5"))
+                RequestEntity.get(endpoint("/producto?idProducto?" + prod.getId()))
                     .header(AUTH_HEADER, BEARER).build(),
                 ProductoDTO.class);
             assertThat(resp.getStatusCodeValue()).isEqualTo(200);
@@ -257,7 +258,7 @@ class ProductoApplicationTests {
                     .header(AUTH_HEADER, BEARER).build(),
                 ProductoDTO.class);
             assertThat(resp.getStatusCodeValue()).isEqualTo(200);
-            assertThat(resp.getBody().getId()).isEqualTo(5);
+            assertThat(resp.getBody().getId()).isEqualTo(prod.getId());
         }
 
         @Test @DisplayName("GET por idCuenta → lista con 1 elemento")
@@ -273,7 +274,7 @@ class ProductoApplicationTests {
         @Test @DisplayName("GET por idCategoria → lista con 1 elemento")
         void getPorCategoria() {
             ResponseEntity<Set<ProductoDTO>> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint("/producto?idCategoria=100"))
+                RequestEntity.get(endpoint("/producto?idCategoria=" + cat.getId()))
                     .header(AUTH_HEADER, BEARER).build(),
                 new org.springframework.core.ParameterizedTypeReference<Set<ProductoDTO>>() {});
             assertThat(resp.getStatusCodeValue()).isEqualTo(200);
@@ -289,8 +290,10 @@ class ProductoApplicationTests {
             entrada.setTextoCorto("T1");
             entrada.setMiniatura("img.png");
             CategoriaDTO catDto = new CategoriaDTO();
+            catDto.setId(cat.getId());
             catDto.setNombre("CatX");
             entrada.setCategorias(Collections.singleton(catDto));
+            entrada.setRelaciones(Collections.emptySet());
 
             entrada.setAtributos(Collections.emptySet());
 
@@ -315,6 +318,7 @@ class ProductoApplicationTests {
             entrada.setTextoCorto("TE");
             entrada.setMiniatura("img2.png");
             CategoriaDTO catDto = new CategoriaDTO();
+            catDto.setId(cat.getId());
             catDto.setNombre("CatX");
             entrada.setCategorias(Collections.singleton(catDto));
 
