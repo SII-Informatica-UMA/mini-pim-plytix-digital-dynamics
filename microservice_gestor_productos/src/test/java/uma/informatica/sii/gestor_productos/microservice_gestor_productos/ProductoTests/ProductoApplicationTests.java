@@ -8,11 +8,13 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -43,6 +45,8 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuari
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoEntradaDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionProductoDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Relacion;
@@ -380,6 +384,34 @@ class ProductoApplicationTests {
             assertThat(resp.getBody()).hasSize(1);
         }
 
+        @NestedConfigurationProperty
+        @Test @DisplayName("GET por idCategoria sin productos → 404")
+        void getPorCategoriaSinProductos() {
+            // Creamos una categoría para la cuenta
+            Categoria c = new Categoria();
+            c.setNombre("C1");
+            c.setCuentaId(4);
+            //categoriaRepo.save(c);
+
+            Producto prod2;
+            prod2 = new Producto();
+            prod2.setGtin("GTIN-345");
+            prod2.setSku("SKU-123");
+            prod2.setNombre("ProdA");
+            prod2.setCuentaId(4);
+            prod2.getCategorias().add(c);
+            prod2.setRelacionesOrigen(Collections.emptySet());
+            prod2.setRelacionesDestino(Collections.emptySet());
+            prod2.setAtributos(Collections.emptySet());
+            productoRepo.save(prod2);
+
+            ResponseEntity<Void> resp = restTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/producto?idCategoria=" + c.getId()))
+                    .header(AUTH_HEADER, TOKEN).build(),
+                Void.class);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
         @Test @DisplayName("POST crearProducto → 201 + Location + DTO")
         void crearProducto() {
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
@@ -486,7 +518,6 @@ class ProductoApplicationTests {
         }
 
         @Test
-        @Transient
         @DisplayName("PUT actualizarProducto → elimina relaciones obsoletas en ambos sentidos")
         void actualizarProductoEliminarRelaciones() {
             // 1) crea un segundo producto y un tipo de relación
@@ -502,7 +533,7 @@ class ProductoApplicationTests {
 
             Relacion tipo = new Relacion();
             tipo.setNombre("TIPO");
-            tipo.setCuentaId(1);
+            tipo.setCuentaId(prod.getCuentaId());
             relacionRepo.save(tipo);
 
             // 2) crea la relación bidireccional inicial A->dest y dest->A
@@ -520,6 +551,7 @@ class ProductoApplicationTests {
 
             // comprueba que existía
             assertThat(relacionProductoRepo.findByProductoOrigen(prod)).hasSize(1);
+            assertThat(relacionProductoRepo.findByProductoOrigen(dest)).hasSize(1);
 
             // 3) lanza la petición de actualización con DTO.relaciones vacío
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
@@ -530,8 +562,9 @@ class ProductoApplicationTests {
             entrada.setMiniatura("img2.png");
             CategoriaDTO catDto = new CategoriaDTO();
             catDto.setId(cat.getId());
-            catDto.setNombre("CatX");
+            catDto.setNombre(cat.getNombre());
             catDto.setId(cat.getId());
+            entrada.setCategorias(Collections.singleton(catDto));
             entrada.setAtributos(Collections.emptySet());
             entrada.setRelaciones(Collections.emptySet());
 
@@ -544,8 +577,70 @@ class ProductoApplicationTests {
             );
 
             // 4) comprueba que ya no hay ni A->dest ni dest->A
-            //assertThat(relacionProductoRepo.findByProductoOrigen(prod)).isEmpty();
+            assertThat(relacionProductoRepo.findByProductoOrigen(prod)).isEmpty();
             assertThat(relacionProductoRepo.findByProductoOrigen(dest)).isEmpty();
+        }
+
+        @Test @DisplayName("PUT actualizarProducto → añade nuevas relaciones en ambos sentidos")
+        void actualizarProductoAgregarRelaciones() {
+            // 1) crea un segundo producto y un tipo de relación
+            Producto dest2 = new Producto();
+            dest2.setGtin("GTIN-888");
+            dest2.setSku("SKU-888");
+            dest2.setNombre("OtroDestino");
+            dest2.setCuentaId(prod.getCuentaId());
+            dest2.setRelacionesOrigen(Collections.emptySet());
+            dest2.setRelacionesDestino(Collections.emptySet());
+            dest2.setAtributos(Collections.emptySet());
+            productoRepo.save(dest2);
+
+            Relacion tipo2 = new Relacion();
+            tipo2.setNombre("TIPO2");
+            tipo2.setCuentaId(prod.getCuentaId());
+            relacionRepo.save(tipo2);
+
+            // sanity check: al principio no hay ninguna relación
+            assertThat(relacionProductoRepo.findByProductoOrigen(prod)).isEmpty();
+            assertThat(relacionProductoRepo.findByProductoOrigen(dest2)).isEmpty();
+
+            // 2) envía el PUT con DTO.relaciones conteniendo dest2
+            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+            entrada.setGtin(prod.getGtin());
+            entrada.setSku(prod.getSku());
+            entrada.setNombre("ProdA-Edit2");
+            entrada.setTextoCorto("TE2");
+            entrada.setMiniatura("img3.png");
+            CategoriaDTO catDto = new CategoriaDTO();
+            catDto.setId(cat.getId());
+            catDto.setNombre(cat.getNombre());
+            entrada.setCategorias(Collections.singleton(catDto));
+            entrada.setAtributos(Collections.emptySet());
+
+            // construye el DTO de relación
+            RelacionProductoDTO relDto = new RelacionProductoDTO();
+            relDto.setIdProductoDestino(dest2.getId());
+            RelacionDTO rel = new RelacionDTO();
+            rel.setId(tipo2.getId());
+            rel.setNombre(tipo2.getNombre());
+            relDto.setRelacion(rel);
+            entrada.setRelaciones(Collections.singleton(relDto));
+
+            restTemplate.exchange(
+                RequestEntity.put(endpoint(port, "/producto/" + prod.getId()))
+                            .header(AUTH_HEADER, TOKEN)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(entrada),
+                ProductoDTO.class
+            );
+
+            // 3) comprueba que se creó A->dest2 **y** dest2->A
+            assertThat(relacionProductoRepo.findByProductoOrigen(prod))
+                .extracting(r -> r.getProductoDestino().getId())
+                .containsExactly(dest2.getId());
+
+            assertThat(relacionProductoRepo.findByProductoOrigen(dest2))
+                .extracting(r -> r.getProductoDestino().getId())
+                .containsExactly(prod.getId());
         }
 
         @Test @DisplayName("DELETE eliminarProducto → 200 + sin entidad en BD")
