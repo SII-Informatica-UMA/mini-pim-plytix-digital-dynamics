@@ -35,7 +35,7 @@ public class ProductoController {
         if (idCuenta != null) count++;
         if (idCategoria != null) count++;
 
-        if (count != 1) {
+        if (count > 1) {
             return ResponseEntity.badRequest().body("Debe proporcionar exactamente un parámetro de consulta.");
         }
         if (idProducto != null) {

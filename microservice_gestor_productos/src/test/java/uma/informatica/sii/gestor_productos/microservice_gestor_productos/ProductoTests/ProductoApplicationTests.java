@@ -9,10 +9,12 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -20,12 +22,16 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.util.UriBuilder;
+import org.springframework.web.util.UriBuilderFactory;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -56,7 +62,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.securi
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class ProductoApplicationTests {
 
-    @LocalServerPort
+    @Value(value = "${local.server.port}")
     private int port;
 
     @Autowired
@@ -69,7 +75,7 @@ class ProductoApplicationTests {
     private CategoriaRepository categoriaRepo;
 
     private static final String AUTH_HEADER = "Authorization";
-    private static final String BEARER = "Bearer token";
+    private static final String TOKEN = "Bearer token";
 
     @TestConfiguration
     static class StubsConfig {
@@ -149,9 +155,50 @@ class ProductoApplicationTests {
         productoRepo.deleteAll();
         categoriaRepo.deleteAll();
     }
+    private URI uri(String scheme, String host, int port, String... paths) {
+        UriBuilderFactory ubf = new DefaultUriBuilderFactory();
+        UriBuilder ub = ubf.builder()
+            .scheme(scheme)
+            .host(host).port(port);
+        for (String path : paths) {
+            ub = ub.path(path);
+        }
+        return ub.build();
+    }
+
+    private RequestEntity<Void> get(String scheme, String host, int port, String path) {
+        URI uri = uri(scheme, host, port, path);
+        var peticion = RequestEntity.get(uri)
+            .accept(MediaType.APPLICATION_JSON)
+            .build();
+        return peticion;
+    }
+
+    private RequestEntity<Void> delete(String scheme, String host, int port, String path) {
+        URI uri = uri(scheme, host, port, path);
+        var peticion = RequestEntity.delete(uri)
+            .build();
+        return peticion;
+    }
+
+    private <T> RequestEntity<T> post(String scheme, String host, int port, String path, T object) {
+        URI uri = uri(scheme, host, port, path);
+        var peticion = RequestEntity.post(uri)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(object);
+        return peticion;
+    }
+
+    private <T> RequestEntity<T> put(String scheme, String host, int port, String path, T object) {
+        URI uri = uri(scheme, host, port, path);
+        var peticion = RequestEntity.put(uri)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(object);
+        return peticion;
+    }
 
     // Helper para construir URIs
-    private URI endpoint(String pathAndQuery) {
+    private static URI endpoint(int port, String pathAndQuery) {
         return URI.create("http://localhost:" + port + pathAndQuery);
     }
 
@@ -161,36 +208,39 @@ class ProductoApplicationTests {
         @Test @DisplayName("GET sin params → 400")
         void getSinParams() {
             ResponseEntity<String> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint("/producto")).build(),
+                RequestEntity.get(endpoint(port, "/producto?"))
+                .header(AUTH_HEADER, TOKEN)
+                .build(),
                 String.class);
-            assertThat(resp.getStatusCodeValue()).isEqualTo(400);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
 
         @Test @DisplayName("GET con >1 params → 400")
         void getMultiplesParams() {
             ResponseEntity<String> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint("/producto?idProducto=1&idCuenta=1"))
-                    .header(AUTH_HEADER, BEARER).build(),
+                RequestEntity.get(endpoint(port, "/producto?idProducto=1&idCuenta=1"))
+                    .header(AUTH_HEADER, TOKEN).build(),
                 String.class);
-            assertThat(resp.getStatusCodeValue()).isEqualTo(400);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(resp.getBody()).contains("Debe proporcionar exactamente un parámetro de consulta.");
         }
 
         @Test @DisplayName("GET idProducto inexistente → 404")
         void getIdNoExiste() {
             ResponseEntity<String> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint("/producto?idProducto=999"))
-                    .header(AUTH_HEADER, BEARER).build(),
+                RequestEntity.get(endpoint(port, "/producto?idProducto=999"))
+                    .header(AUTH_HEADER, TOKEN).build(),
                 String.class);
-            assertThat(resp.getStatusCodeValue()).isEqualTo(404);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         }
 
         @Test @DisplayName("GET gtin inexistente → 404")
         void getGtinNoExiste() {
             ResponseEntity<String> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint("/producto?gtin=XX"))
-                    .header(AUTH_HEADER, BEARER).build(),
+                RequestEntity.get(endpoint(port, "/producto?gtin=XX"))
+                    .header(AUTH_HEADER, TOKEN).build(),
                 String.class);
-            assertThat(resp.getStatusCodeValue()).isEqualTo(404);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         }
 
         @Test @DisplayName("GET idCuenta sin productos → []")
@@ -202,20 +252,21 @@ class ProductoApplicationTests {
             categoriaRepo.save(c);
 
             ResponseEntity<Set<ProductoDTO>> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint("/producto?idCuenta=1"))
-                    .header(AUTH_HEADER, BEARER).build(),
+                RequestEntity.get(endpoint(port, "/producto?idCuenta=1"))
+                    .header(AUTH_HEADER, TOKEN).build(),
                 new org.springframework.core.ParameterizedTypeReference<Set<ProductoDTO>>() {});
-            assertThat(resp.getStatusCodeValue()).isEqualTo(200);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody()).isEmpty();
         }
 
         @Test @DisplayName("GET idCategoria inexistente → 404")
         void getCategoriaNoExiste() {
-            ResponseEntity<String> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint("/producto?idCategoria=50"))
-                    .header(AUTH_HEADER, BEARER).build(),
-                String.class);
-            assertThat(resp.getStatusCodeValue()).isEqualTo(404);
+            ResponseEntity<Void> resp = restTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/producto?idCategoria=50"))
+                    .header(AUTH_HEADER, TOKEN).build(),
+                Void.class);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(resp.getBody()).isNull();
         }
     }
 
@@ -230,54 +281,68 @@ class ProductoApplicationTests {
             cat = new Categoria();
             cat.setNombre("CatX");
             cat.setCuentaId(2);
-            //categoriaRepo.save(cat);
+            // categoriaRepo.save(cat);
+            // cat = categoriaRepo.findById(cat.getId()).get();
 
             prod = new Producto();
             prod.setGtin("GTIN-123");
-            prod.setSku("SKU1");
-            prod.setCuentaId(2);
+            prod.setSku("SKU-123");
             prod.setNombre("ProdA");
+            prod.setCuentaId(2);
             prod.getCategorias().add(cat);
+            prod.setRelacionesOrigen(Collections.emptySet());
+            prod.setRelacionesDestino(Collections.emptySet());
+            prod.setAtributos(Collections.emptySet());
             productoRepo.save(prod);
+
+        }
+
+        @Test @DisplayName("GET Sin params → 400")
+        void getSinParams(){
+            ResponseEntity<Void> resp = restTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/producto"))
+                    .header(AUTH_HEADER, TOKEN).build(),
+                Void.class);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
 
         @Test @DisplayName("GET por idProducto → OK + DTO correcto")
         void getPorId() {
             ResponseEntity<ProductoDTO> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint("/producto?idProducto?" + prod.getId()))
-                    .header(AUTH_HEADER, BEARER).build(),
+                RequestEntity.get(endpoint(port, "/producto?idProducto=" + prod.getId()))
+                    .header(AUTH_HEADER, TOKEN).build(),
                 ProductoDTO.class);
-            assertThat(resp.getStatusCodeValue()).isEqualTo(200);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody().getNombre()).isEqualTo("ProdA");
         }
 
         @Test @DisplayName("GET por gtin → OK + DTO correcto")
         void getPorGtin() {
             ResponseEntity<ProductoDTO> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint("/producto?gtin=GTIN-123"))
-                    .header(AUTH_HEADER, BEARER).build(),
+                RequestEntity.get(endpoint(port, "/producto?gtin=GTIN-123"))
+                    .header(AUTH_HEADER, TOKEN).build(),
                 ProductoDTO.class);
-            assertThat(resp.getStatusCodeValue()).isEqualTo(200);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody().getId()).isEqualTo(prod.getId());
         }
 
         @Test @DisplayName("GET por idCuenta → lista con 1 elemento")
         void getPorCuenta() {
             ResponseEntity<Set<ProductoDTO>> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint("/producto?idCuenta=2"))
-                    .header(AUTH_HEADER, BEARER).build(),
+                RequestEntity.get(endpoint(port, "/producto?idCuenta=2"))
+                    .header(AUTH_HEADER, TOKEN).build(),
                 new org.springframework.core.ParameterizedTypeReference<Set<ProductoDTO>>() {});
-            assertThat(resp.getStatusCodeValue()).isEqualTo(200);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody()).hasSize(1);
         }
 
         @Test @DisplayName("GET por idCategoria → lista con 1 elemento")
         void getPorCategoria() {
             ResponseEntity<Set<ProductoDTO>> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint("/producto?idCategoria=" + cat.getId()))
-                    .header(AUTH_HEADER, BEARER).build(),
+                RequestEntity.get(endpoint(port, "/producto?idCategoria=" + cat.getId()))
+                    .header(AUTH_HEADER, TOKEN).build(),
                 new org.springframework.core.ParameterizedTypeReference<Set<ProductoDTO>>() {});
-            assertThat(resp.getStatusCodeValue()).isEqualTo(200);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody()).hasSize(1);
         }
 
@@ -292,58 +357,228 @@ class ProductoApplicationTests {
             CategoriaDTO catDto = new CategoriaDTO();
             catDto.setId(cat.getId());
             catDto.setNombre("CatX");
+            catDto.setId(cat.getId());
             entrada.setCategorias(Collections.singleton(catDto));
+            entrada.setAtributos(Collections.emptySet());
             entrada.setRelaciones(Collections.emptySet());
 
-            entrada.setAtributos(Collections.emptySet());
 
             ResponseEntity<ProductoDTO> resp = restTemplate.exchange(
-                RequestEntity.post(endpoint("/producto?idCuenta=2"))
-                    .header(AUTH_HEADER, BEARER)
+                RequestEntity.post(endpoint(port, "/producto?idCuenta=2"))
+                    .header(AUTH_HEADER, TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),
                 ProductoDTO.class);
 
-            assertThat(resp.getStatusCodeValue()).isEqualTo(201);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
             assertThat(resp.getHeaders().getLocation()).isNotNull();
             assertThat(resp.getBody().getNombre()).isEqualTo("NuevoProd");
+        }
+
+        @Test @DisplayName("POST crearProducto → 404 + sin categoria")
+        void crearProductoSinCategoria() {
+            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+            entrada.setGtin("NEW-GTIN");
+            entrada.setSku("SKU1");
+            entrada.setNombre("NuevoProd");
+            entrada.setTextoCorto("T1");
+            entrada.setMiniatura("img.png");
+            entrada.setCategorias(Collections.emptySet());
+            entrada.setAtributos(Collections.emptySet());
+            entrada.setRelaciones(Collections.emptySet());
+
+
+            ResponseEntity<Void> resp = restTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/producto?idCuenta=2"))
+                    .header(AUTH_HEADER, TOKEN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         }
 
         @Test @DisplayName("PUT actualizarProducto → 200 + cambios aplicados")
         void actualizarProducto() {
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
             entrada.setGtin("GTIN-123");
-            entrada.setSku("SKU2");
+            entrada.setSku("SKU-123");
             entrada.setNombre("ProdA-Edit");
             entrada.setTextoCorto("TE");
             entrada.setMiniatura("img2.png");
             CategoriaDTO catDto = new CategoriaDTO();
             catDto.setId(cat.getId());
             catDto.setNombre("CatX");
+            catDto.setId(cat.getId());
             entrada.setCategorias(Collections.singleton(catDto));
 
             entrada.setAtributos(Collections.emptySet());
 
             ResponseEntity<ProductoDTO> resp = restTemplate.exchange(
-                RequestEntity.put(endpoint("/producto/" + prod.getId()))
-                    .header(AUTH_HEADER, BEARER)
+                RequestEntity.put(endpoint(port, "/producto/" + prod.getId()))
+                    .header(AUTH_HEADER, TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),
                 ProductoDTO.class);
 
-            assertThat(resp.getStatusCodeValue()).isEqualTo(200);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody().getNombre()).isEqualTo("ProdA-Edit");
         }
 
         @Test @DisplayName("DELETE eliminarProducto → 200 + sin entidad en BD")
         void eliminarProducto() {
             ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.delete(endpoint("/producto/" + prod.getId()))
-                    .header(AUTH_HEADER, BEARER)
+                RequestEntity.delete(endpoint(port, "/producto/" + prod.getId()))
+                    .header(AUTH_HEADER, TOKEN)
                     .build(),
                 Void.class);
-            assertThat(resp.getStatusCodeValue()).isEqualTo(200);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(productoRepo.findById(5)).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("Cuando usuario no pertenece a cuenta")
+    @SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = {
+            "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration",
+            "spring.main.allow-bean-definition-overriding=true",
+        }
+    )   
+    @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+    public class SinPermisos {
+        @TestConfiguration
+        static class StubsConfig {
+            @Bean @Primary
+            UsuarioService usuarioService() {
+                return new UsuarioService(null, null) {
+                    @Override
+                    public boolean usuarioPerteneceACuenta(Integer idCuenta, Long idUsuario, String jwt) {
+                        return false;
+                    }
+                };
+            }
+
+        @Value(value = "${local.server.port}")
+        private int port;
+
+        @Autowired
+        private TestRestTemplate restTemplate;
+
+        @Autowired
+        private ProductoRepository productoRepo;
+
+        @Autowired
+        private CategoriaRepository categoriaRepo;
+
+        private static final String AUTH_HEADER = "Authorization";
+        private static final String TOKEN = "Bearer token";
+
+
+            private Categoria cat;
+            private Producto prod;
+
+            @BeforeEach
+            void datos() {
+                cat = new Categoria();
+                cat.setNombre("CatX");
+                cat.setCuentaId(2);
+                // categoriaRepo.save(cat);
+                // cat = categoriaRepo.findById(cat.getId()).get();
+
+                prod = new Producto();
+                prod.setGtin("GTIN-123");
+                prod.setSku("SKU-123");
+                prod.setNombre("ProdA");
+                prod.setCuentaId(2);
+                prod.getCategorias().add(cat);
+                prod.setRelacionesOrigen(Collections.emptySet());
+                prod.setRelacionesDestino(Collections.emptySet());
+                prod.setAtributos(Collections.emptySet());
+                productoRepo.save(prod);
+            }
+
+            @Test @DisplayName("GET por idProducto → FORBIDDEN")
+            void getPorId() {
+                ResponseEntity<ProductoDTO> resp = restTemplate.exchange(
+                    RequestEntity.get(endpoint(port, "/producto?idProducto=" + prod.getId()))
+                        .header(AUTH_HEADER, TOKEN).build(),
+                    ProductoDTO.class);
+                assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            }
+
+            @Test @DisplayName("GET por idCategoria → FORBIDDEN")
+            void getPorCategoria() {
+                ResponseEntity<Set<ProductoDTO>> resp = restTemplate.exchange(
+                    RequestEntity.get(endpoint(port, "/producto?idCategoria=" + cat.getId()))
+                        .header(AUTH_HEADER, TOKEN).build(),
+                    new org.springframework.core.ParameterizedTypeReference<Set<ProductoDTO>>() {});
+                assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            }
+
+            @Test @DisplayName("POST crearProducto → FORBIDDEN")
+            void crearProducto() {
+                ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+                entrada.setGtin("NEW-GTIN");
+                entrada.setSku("SKU1");
+                entrada.setNombre("NuevoProd");
+                entrada.setTextoCorto("T1");
+                entrada.setMiniatura("img.png");
+                CategoriaDTO catDto = new CategoriaDTO();
+                catDto.setId(cat.getId());
+                catDto.setNombre("CatX");
+                catDto.setId(cat.getId());
+                entrada.setCategorias(Collections.singleton(catDto));
+                entrada.setAtributos(Collections.emptySet());
+                entrada.setRelaciones(Collections.emptySet());
+
+
+                ResponseEntity<ProductoDTO> resp = restTemplate.exchange(
+                    RequestEntity.post(endpoint(port, "/producto?idCuenta=2"))
+                        .header(AUTH_HEADER, TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(entrada),
+                    ProductoDTO.class);
+
+                assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            }
+
+            @Test @DisplayName("PUT actualizarProducto → FORBIDDEN")
+            void actualizarProducto() {
+                ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+                entrada.setGtin("GTIN-123");
+                entrada.setSku("SKU-123");
+                entrada.setNombre("ProdA-Edit");
+                entrada.setTextoCorto("TE");
+                entrada.setMiniatura("img2.png");
+                CategoriaDTO catDto = new CategoriaDTO();
+                catDto.setId(cat.getId());
+                catDto.setNombre("CatX");
+                catDto.setId(cat.getId());
+                entrada.setCategorias(Collections.singleton(catDto));
+
+                entrada.setAtributos(Collections.emptySet());
+
+                ResponseEntity<ProductoDTO> resp = restTemplate.exchange(
+                    RequestEntity.put(endpoint(port, "/producto/" + prod.getId()))
+                        .header(AUTH_HEADER, TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(entrada),
+                    ProductoDTO.class);
+
+                assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            }
+
+            @Test @DisplayName("DELETE eliminarProducto → FORBIDDEN")
+            void eliminarProducto() {
+                ResponseEntity<Void> resp = restTemplate.exchange(
+                    RequestEntity.delete(endpoint(port, "/producto/" + prod.getId()))
+                        .header(AUTH_HEADER, TOKEN)
+                        .build(),
+                    Void.class);
+                assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            }
         }
     }
 }
