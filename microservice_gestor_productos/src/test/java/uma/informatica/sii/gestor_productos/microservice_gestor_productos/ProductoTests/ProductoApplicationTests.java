@@ -28,18 +28,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.annotation.DirtiesContext;
 
-<<<<<<< HEAD
-
-
-import org.springframework.core.ParameterizedTypeReference;
-
-=======
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaDTO;
->>>>>>> e843531bd66da2434683a092f88d1ee7c26a84ba
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.PlanDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioDTO;
