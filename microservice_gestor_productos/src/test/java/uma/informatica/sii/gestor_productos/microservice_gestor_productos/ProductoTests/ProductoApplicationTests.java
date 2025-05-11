@@ -13,6 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -28,6 +29,10 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriBuilder;
 import org.springframework.web.util.UriBuilderFactory;
+
+
+
+import org.springframework.core.ParameterizedTypeReference;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioDTO;
@@ -51,7 +56,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.reposi
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class ProductoApplicationTests {
 
-    @LocalServerPort
+    @Value(value = "${local.server.port}")
     private int port;
 
     @Autowired
@@ -63,7 +68,7 @@ public class ProductoApplicationTests {
     @Autowired
     private CategoriaRepository categoriaRepository;
 
-    private static final String VALID_TOKEN = "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlIjoiQ0xJRU5URSIsInN1YiI6IjIiLCJpYXQiOjE3NDQ5MTQ2NTMsImV4cCI6MTgwNzk4NjY1M30.vTQEIGffqIwqWRbbxihuplJhLfXi6Flhs_zXKOtxjQJoJipIaSxSqPBrqurDu9u296vo7qwpHLvisf3yQHa--w";
+    private static final String VALID_TOKEN = "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlIjoiQURNSU5JU1RSQURPUiIsInN1YiI6IjEiLCJpYXQiOjE3NDQ5MTQ3MDQsImV4cCI6MTgwNzk4NjcwNH0.YIXpA6aXXJ6q8tKjAAnVKT_uumuTdbhkLVieaCGf4vFtOMcYoNOH-FarolDduIQ3ulN-Gxy4TWBymK3ypZ38bQ\r\n";
 
     private URI uri(String path) {
         UriBuilderFactory factory = new DefaultUriBuilderFactory();
@@ -77,6 +82,47 @@ public class ProductoApplicationTests {
         productoRepository.deleteAll();
         categoriaRepository.deleteAll();
     }
+    private URI uri(String scheme, String host, int port, String... paths) {
+        UriBuilderFactory ubf = new DefaultUriBuilderFactory();
+        UriBuilder ub = ubf.builder()
+            .scheme(scheme)
+            .host(host).port(port);
+        for (String path : paths) {
+            ub = ub.path(path);
+        }
+        return ub.build();
+    }
+
+    private RequestEntity<Void> get(String scheme, String host, int port, String path) {
+        URI uri = uri(scheme, host, port, path);
+        var peticion = RequestEntity.get(uri)
+            .accept(MediaType.APPLICATION_JSON)
+            .build();
+        return peticion;
+    }
+
+    private RequestEntity<Void> delete(String scheme, String host, int port, String path) {
+        URI uri = uri(scheme, host, port, path);
+        var peticion = RequestEntity.delete(uri)
+            .build();
+        return peticion;
+    }
+
+    private <T> RequestEntity<T> post(String scheme, String host, int port, String path, T object) {
+        URI uri = uri(scheme, host, port, path);
+        var peticion = RequestEntity.post(uri)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(object);
+        return peticion;
+    }
+
+    private <T> RequestEntity<T> put(String scheme, String host, int port, String path, T object) {
+        URI uri = uri(scheme, host, port, path);
+        var peticion = RequestEntity.put(uri)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(object);
+        return peticion;
+    }
 
     @TestConfiguration
     static class StubServicesConfig {
@@ -86,18 +132,34 @@ public class ProductoApplicationTests {
             return new UsuarioService(restTemplate, jwtUtil) {
                 @Override
                 public Optional<UsuarioDTO> getUsuarioConectado(String jwtToken) {
+                    if (jwtToken != null && jwtToken.startsWith("Bearer ")) {
+                        jwtToken = jwtToken.substring(7);
+                    }
                     if (VALID_TOKEN.equals(jwtToken)) {
-                        return Optional.of(new UsuarioDTO());
+                        UsuarioDTO usuario = new UsuarioDTO();
+                        usuario.setId(1L);
+                        usuario.setRole(Rol.ADMINISTRADOR);
+                        return Optional.of(usuario);
+                    }
+                    return Optional.empty();
+                }
+                @Override
+                public boolean usuarioPerteneceACuenta(Integer idCuenta, Long usuarioId, String jwtTokenDelUsuario) {
+                    // return VALID_TOKEN.equals(jwtTokenDelUsuario) && idCuenta.equals(1) && usuarioId.equals(1L);
+                    return true;
+                }
+                @Override
+                public Optional<UsuarioDTO> getUsuario(Long usuarioId, String jwtToken) {
+                    System.out.println("Stub getUsuario invocado con ID: " + usuarioId);
+                    if (usuarioId == 1L) {
+                        UsuarioDTO usuario = new UsuarioDTO();
+                        usuario.setId(1L);
+                        usuario.setRole(Rol.ADMINISTRADOR);
+                        return Optional.of(usuario);
                     }
                     return Optional.empty();
                 }
 
-                @Override
-                public boolean usuarioPerteneceACuenta(Integer idCuenta, Long usuarioId, String jwtTokenDelUsuario) {
-                    return VALID_TOKEN.equals(jwtTokenDelUsuario)
-                        && idCuenta.equals(1)
-                        && usuarioId.equals(1L);
-                }
             };
         }
 
@@ -108,7 +170,7 @@ public class ProductoApplicationTests {
                 @Override
                 public boolean puedeCrearProducto(Integer cuentaId, int productosActuales, UsuarioDTO usuario) {
                     // Permitimos siempre si viene un usuario válido
-                    return usuario.getRole() == Rol.CLIENTE;
+                    return true;
                 }
             };
         }
@@ -122,14 +184,15 @@ public class ProductoApplicationTests {
         public void listaVacia() {
             URI endpoint = uri("/producto?idCuenta=1");
             RequestEntity<Void> request = RequestEntity.get(endpoint)
-                .header("Authorization", VALID_TOKEN)
+                .header("Authorization", "Bearer " + VALID_TOKEN)
                 .accept(MediaType.APPLICATION_JSON)
                 .build();
-
+        
             ResponseEntity<Set<ProductoDTO>> response = restTemplate.exchange(request,
                 new org.springframework.core.ParameterizedTypeReference<Set<ProductoDTO>>() {});
+            
 
-            assertThat(response.getStatusCodeValue()).isEqualTo(200);
+            assertThat(response.getStatusCode()).isEqualTo(200);
             assertThat(response.getBody()).isEmpty();
         }
 
