@@ -8,7 +8,7 @@ import java.time.LocalDate;
 @EqualsAndHashCode
 @ToString
 public class CuentaDTO {
-    private Long id;
+    private Integer id;
     private String nombre;
     private String direccion;
     private String nif;
