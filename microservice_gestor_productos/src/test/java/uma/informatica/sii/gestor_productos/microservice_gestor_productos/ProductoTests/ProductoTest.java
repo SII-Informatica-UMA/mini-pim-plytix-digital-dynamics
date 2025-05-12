@@ -5,22 +5,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
-import java.util.Set;
-
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.data.annotation.Transient;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
@@ -28,15 +23,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.web.util.DefaultUriBuilderFactory;
-import org.springframework.web.util.UriBuilder;
-import org.springframework.web.util.UriBuilderFactory;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.transaction.Transactional;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.PlanDTO;
@@ -45,16 +35,10 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuari
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoEntradaDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionProductoDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Relacion;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.RelacionProducto;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionProductoRepository;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.security.JwtRequestFilter;
 
 @SpringBootTest(
@@ -79,12 +63,6 @@ class ProductoTest {
     
     @Autowired
     private CategoriaRepository categoriaRepo;
-
-    @Autowired
-    private RelacionProductoRepository relacionProductoRepo;
-
-    @Autowired
-    private RelacionRepository relacionRepo;
     
     private static final String AUTH_HEADER = "Authorization";
     private static final String TOKEN = "Bearer token";
@@ -129,7 +107,7 @@ class ProductoTest {
                 }
                 @Override
                 public boolean puedeCrearProducto(Integer cuentaId, int actuales, UsuarioDTO u) {
-                    return true;
+                    return false;
                 }
                 @Override
                 public boolean puedeCrearCategoria(Integer cuentaId, int actuales, UsuarioDTO u) {
@@ -167,16 +145,6 @@ class ProductoTest {
         productoRepo.deleteAll();
         categoriaRepo.deleteAll();
     }
-    private URI uri(String scheme, String host, int port, String... paths) {
-        UriBuilderFactory ubf = new DefaultUriBuilderFactory();
-        UriBuilder ub = ubf.builder()
-        .scheme(scheme)
-        .host(host).port(port);
-        for (String path : paths) {
-            ub = ub.path(path);
-        }
-        return ub.build();
-    }
     
     // Helper para construir URIs
     private static URI endpoint(int port, String pathAndQuery) {
@@ -186,6 +154,9 @@ class ProductoTest {
     @Nested 
     @DisplayName("Cuando NO hay productos")
     public class SinProductos {
+        private Categoria cat;
+        private Producto prod;
+
         @Test @DisplayName("GET por idCategoria sin productos → 404")
         void getPorCategoriaSinProductos() {
             // Creamos una categoría para la cuenta
@@ -210,6 +181,37 @@ class ProductoTest {
                 RequestEntity.get(endpoint(port, "/producto?idCategoria=" + c.getId()))
                     .header(AUTH_HEADER, TOKEN).build(),
                 Void.class);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+        @Test @DisplayName("POST crearProducto → FORBIDDEN")
+        void crearProducto() {
+            cat = new Categoria();
+            cat.setNombre("CatX");
+            cat.setCuentaId(3);
+            categoriaRepo.save(cat);
+
+            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+            entrada.setGtin("NEW-GTIN");
+            entrada.setSku("SKU1");
+            entrada.setNombre("NuevoProd");
+            entrada.setTextoCorto("T1");
+            entrada.setMiniatura("img.png");
+            CategoriaDTO catDto = new CategoriaDTO();
+            catDto.setId(cat.getId());
+            catDto.setNombre(cat.getNombre());
+            catDto.setId(cat.getId());
+            entrada.setCategorias(Collections.singleton(catDto));
+            entrada.setAtributos(Collections.emptySet());
+            entrada.setRelaciones(Collections.emptySet());
+
+
+            ResponseEntity<ProductoDTO> resp = restTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/producto?idCuenta=" + 3))
+                    .header(AUTH_HEADER, TOKEN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                ProductoDTO.class);
+
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
     }
