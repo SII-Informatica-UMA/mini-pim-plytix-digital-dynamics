@@ -8,11 +8,13 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -26,7 +28,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.NestedTestConfiguration;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriBuilder;
 import org.springframework.web.util.UriBuilderFactory;
@@ -56,7 +57,6 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.reposi
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.security.JwtRequestFilter;
 
-
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
@@ -64,25 +64,31 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.securi
         "spring.main.allow-bean-definition-overriding=true",
     }
     )
-@DisplayName("Tests de Productos con Usuario NO Pertenece a Cuenta - ")
+@DisplayName("Tests de Productos- ")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-class ProductoApplicationUserTests {
-
+class ProductoTest {
+    
     @Value(value = "${local.server.port}")
     private int port;
-
+    
     @Autowired
     private TestRestTemplate restTemplate;
-
+    
     @Autowired
     private ProductoRepository productoRepo;
-
+    
     @Autowired
     private CategoriaRepository categoriaRepo;
 
+    @Autowired
+    private RelacionProductoRepository relacionProductoRepo;
+
+    @Autowired
+    private RelacionRepository relacionRepo;
+    
     private static final String AUTH_HEADER = "Authorization";
     private static final String TOKEN = "Bearer token";
-
+    
     @TestConfiguration
     static class StubsConfig {
         @Bean @Primary
@@ -97,7 +103,7 @@ class ProductoApplicationUserTests {
                 }
                 @Override
                 public boolean usuarioPerteneceACuenta(Integer idCuenta, Long idUsuario, String jwt) {
-                    return false;
+                    return idCuenta == 1 || idCuenta == 3;
                 }
                 @Override
                 public java.util.Optional<UsuarioDTO> getUsuario(Long id, String jwt) {
@@ -161,16 +167,25 @@ class ProductoApplicationUserTests {
         productoRepo.deleteAll();
         categoriaRepo.deleteAll();
     }
+    private URI uri(String scheme, String host, int port, String... paths) {
+        UriBuilderFactory ubf = new DefaultUriBuilderFactory();
+        UriBuilder ub = ubf.builder()
+        .scheme(scheme)
+        .host(host).port(port);
+        for (String path : paths) {
+            ub = ub.path(path);
+        }
+        return ub.build();
+    }
     
-        // Helper para construir URIs
+    // Helper para construir URIs
     private static URI endpoint(int port, String pathAndQuery) {
         return URI.create("http://localhost:" + port + pathAndQuery);
     }
     
-
-    @Nested
-    @DisplayName("Hay productos")
-    public class usuarioNoPerteneceACuenta {
+    @Nested 
+    @DisplayName("Cuando NO hay productos")
+    public class SinProductos {
         @Test @DisplayName("GET por idCategoria sin productos → 404")
         void getPorCategoriaSinProductos() {
             // Creamos una categoría para la cuenta
@@ -184,7 +199,7 @@ class ProductoApplicationUserTests {
             prod2.setGtin("GTIN-345");
             prod2.setSku("SKU-123");
             prod2.setNombre("ProdA");
-            prod2.setCuentaId(2);
+            prod2.setCuentaId(4);
             prod2.getCategorias().add(c);
             prod2.setRelacionesOrigen(Collections.emptySet());
             prod2.setRelacionesDestino(Collections.emptySet());
