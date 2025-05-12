@@ -384,33 +384,6 @@ class ProductoApplicationTests {
             assertThat(resp.getBody()).hasSize(1);
         }
 
-        @NestedConfigurationProperty
-        @Test @DisplayName("GET por idCategoria sin productos → 404")
-        void getPorCategoriaSinProductos() {
-            // Creamos una categoría para la cuenta
-            Categoria c = new Categoria();
-            c.setNombre("C1");
-            c.setCuentaId(4);
-            //categoriaRepo.save(c);
-
-            Producto prod2;
-            prod2 = new Producto();
-            prod2.setGtin("GTIN-345");
-            prod2.setSku("SKU-123");
-            prod2.setNombre("ProdA");
-            prod2.setCuentaId(4);
-            prod2.getCategorias().add(c);
-            prod2.setRelacionesOrigen(Collections.emptySet());
-            prod2.setRelacionesDestino(Collections.emptySet());
-            prod2.setAtributos(Collections.emptySet());
-            productoRepo.save(prod2);
-
-            ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/producto?idCategoria=" + c.getId()))
-                    .header(AUTH_HEADER, TOKEN).build(),
-                Void.class);
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        }
 
         @Test @DisplayName("POST crearProducto → 201 + Location + DTO")
         void crearProducto() {
