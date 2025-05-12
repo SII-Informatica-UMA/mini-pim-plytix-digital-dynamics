@@ -155,7 +155,6 @@ class ProductoTest {
     @DisplayName("Cuando NO hay productos")
     public class SinProductos {
         private Categoria cat;
-        private Producto prod;
 
         @Test @DisplayName("GET por idCategoria sin productos → 404")
         void getPorCategoriaSinProductos() {
