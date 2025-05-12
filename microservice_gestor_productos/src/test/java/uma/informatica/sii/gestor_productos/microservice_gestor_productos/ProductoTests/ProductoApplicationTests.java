@@ -384,7 +384,6 @@ class ProductoApplicationTests {
             assertThat(resp.getBody()).hasSize(1);
         }
 
-        @NestedConfigurationProperty
         @Test @DisplayName("GET por idCategoria sin productos → 404")
         void getPorCategoriaSinProductos() {
             // Creamos una categoría para la cuenta
