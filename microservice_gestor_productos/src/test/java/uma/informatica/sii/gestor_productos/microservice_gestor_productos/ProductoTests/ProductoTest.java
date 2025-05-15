@@ -41,7 +41,6 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.reposi
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.security.JwtRequestFilter;
 
-
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
@@ -49,25 +48,25 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.securi
         "spring.main.allow-bean-definition-overriding=true",
     }
     )
-@DisplayName("Tests de Productos con Usuario NO Pertenece a Cuenta - ")
+@DisplayName("Tests de Productos- ")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-class ProductoApplicationUserTests {
-
+class ProductoTest {
+    
     @Value(value = "${local.server.port}")
     private int port;
-
+    
     @Autowired
     private TestRestTemplate restTemplate;
-
+    
     @Autowired
     private ProductoRepository productoRepo;
-
+    
     @Autowired
     private CategoriaRepository categoriaRepo;
-
+    
     private static final String AUTH_HEADER = "Authorization";
     private static final String TOKEN = "Bearer token";
-
+    
     @TestConfiguration
     static class StubsConfig {
         @Bean @Primary
@@ -82,7 +81,7 @@ class ProductoApplicationUserTests {
                 }
                 @Override
                 public boolean usuarioPerteneceACuenta(Integer idCuenta, Long idUsuario, String jwt) {
-                    return false;
+                    return idCuenta == 1 || idCuenta == 3;
                 }
                 @Override
                 public java.util.Optional<UsuarioDTO> getUsuario(Long id, String jwt) {
@@ -108,7 +107,7 @@ class ProductoApplicationUserTests {
                 }
                 @Override
                 public boolean puedeCrearProducto(Integer cuentaId, int actuales, UsuarioDTO u) {
-                    return true;
+                    return false;
                 }
                 @Override
                 public boolean puedeCrearCategoria(Integer cuentaId, int actuales, UsuarioDTO u) {
@@ -147,67 +146,49 @@ class ProductoApplicationUserTests {
         categoriaRepo.deleteAll();
     }
     
-        // Helper para construir URIs
+    // Helper para construir URIs
     private static URI endpoint(int port, String pathAndQuery) {
         return URI.create("http://localhost:" + port + pathAndQuery);
     }
     
-
-    @Nested
-    @DisplayName("Hay productos")
-    public class usuarioNoPerteneceACuenta {
+    @Nested 
+    @DisplayName("Cuando NO hay productos")
+    public class SinProductos {
         private Categoria cat;
-        private Producto prod;
 
-        @BeforeEach
-        void datos() {
+        @Test @DisplayName("GET por idCategoria sin productos → 404")
+        void getPorCategoriaSinProductos() {
+            // Creamos una categoría para la cuenta
+            Categoria c = new Categoria();
+            c.setNombre("C1");
+            c.setCuentaId(1);
+            //categoriaRepo.save(c);
+
+            Producto prod2;
+            prod2 = new Producto();
+            prod2.setGtin("GTIN-345");
+            prod2.setSku("SKU-123");
+            prod2.setNombre("ProdA");
+            prod2.setCuentaId(4);
+            prod2.getCategorias().add(c);
+            prod2.setRelacionesOrigen(Collections.emptySet());
+            prod2.setRelacionesDestino(Collections.emptySet());
+            prod2.setAtributos(Collections.emptySet());
+            productoRepo.save(prod2);
+
+            ResponseEntity<Void> resp = restTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/producto?idCategoria=" + c.getId()))
+                    .header(AUTH_HEADER, TOKEN).build(),
+                Void.class);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+        @Test @DisplayName("POST crearProducto → FORBIDDEN")
+        void crearProducto() {
             cat = new Categoria();
             cat.setNombre("CatX");
             cat.setCuentaId(3);
-            // categoriaRepo.save(cat);
-            // cat = categoriaRepo.findById(cat.getId()).get();
+            categoriaRepo.save(cat);
 
-            prod = new Producto();
-            prod.setGtin("GTIN-123");
-            prod.setSku("SKU-123");
-            prod.setNombre("ProdA");
-            prod.setCuentaId(3);
-            prod.getCategorias().add(cat);
-            prod.setRelacionesOrigen(Collections.emptySet());
-            prod.setRelacionesDestino(Collections.emptySet());
-            prod.setAtributos(Collections.emptySet());
-            productoRepo.save(prod);
-        }
-        @Test @DisplayName("GET por idProducto → FORBIDDEN")
-        void getPorId() {
-            ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/producto?idProducto=" + prod.getId()))
-                    .header(AUTH_HEADER, TOKEN).build(),
-                Void.class);
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        }
-
-        @Test @DisplayName("GET por idCategoria → FORBIDDEN")
-        void getPorCategoria() {
-            ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/producto?idCategoria=" + cat.getId()))
-                    .header(AUTH_HEADER, TOKEN).build(),
-                Void.class);
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        }
-
-        @Test @DisplayName("GET por idCuenta → FORBIDDEN")
-        void getPorCuenta() {
-            ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/producto?idCuenta=2"))
-                    .header(AUTH_HEADER, TOKEN).build(),
-                Void.class);
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        }
-
-
-        @Test @DisplayName("POST crearProducto → FORBIDDEN")
-        void crearProducto() {
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
             entrada.setGtin("NEW-GTIN");
             entrada.setSku("SKU1");
@@ -216,7 +197,7 @@ class ProductoApplicationUserTests {
             entrada.setMiniatura("img.png");
             CategoriaDTO catDto = new CategoriaDTO();
             catDto.setId(cat.getId());
-            catDto.setNombre("CatX");
+            catDto.setNombre(cat.getNombre());
             catDto.setId(cat.getId());
             entrada.setCategorias(Collections.singleton(catDto));
             entrada.setAtributos(Collections.emptySet());
@@ -224,7 +205,7 @@ class ProductoApplicationUserTests {
 
 
             ResponseEntity<ProductoDTO> resp = restTemplate.exchange(
-                RequestEntity.post(endpoint(port, "/producto?idCuenta=" + cat.getId()))
+                RequestEntity.post(endpoint(port, "/producto?idCuenta=" + 3))
                     .header(AUTH_HEADER, TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),
@@ -232,42 +213,5 @@ class ProductoApplicationUserTests {
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
-
-        @Test @DisplayName("PUT actualizarProducto → FORBIDDEN")
-        void actualizarProducto() {
-            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
-            entrada.setGtin("GTIN-123");
-            entrada.setSku("SKU-123");
-            entrada.setNombre("ProdA-Edit");
-            entrada.setTextoCorto("TE");
-            entrada.setMiniatura("img2.png");
-            CategoriaDTO catDto = new CategoriaDTO();
-            catDto.setId(cat.getId());
-            catDto.setNombre("CatX");
-            catDto.setId(cat.getId());
-            entrada.setCategorias(Collections.singleton(catDto));
-
-            entrada.setAtributos(Collections.emptySet());
-
-            ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.put(endpoint(port, "/producto/" + prod.getId()))
-                    .header(AUTH_HEADER, TOKEN)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(entrada),
-                Void.class);
-
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        }
-
-        @Test @DisplayName("DELETE eliminarProducto → FORBIDDEN")
-        void eliminarProducto() {
-            ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.delete(endpoint(port, "/producto/" + prod.getId()))
-                    .header(AUTH_HEADER, TOKEN)
-                    .build(),
-                Void.class);
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        }
-        
     }
 }

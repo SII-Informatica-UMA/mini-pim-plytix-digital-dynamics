@@ -1,10 +1,11 @@
-package uma.informatica.sii.gestor_productos.microservice_gestor_productos.ProductoTests;
+package uma.informatica.sii.gestor_productos.microservice_gestor_productos.CategoriaTests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -23,44 +24,39 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.annotation.DirtiesContext;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.PlanDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.ProductoEntradaDTO;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaEntradaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Producto;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.security.JwtRequestFilter;
-
 
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
         "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration",
-        "spring.main.allow-bean-definition-overriding=true",
+        "spring.main.allow-bean-definition-overriding=true"
     }
-    )
-@DisplayName("Tests de Productos con Usuario NO Pertenece a Cuenta - ")
+)
+@DisplayName("Tests de Categorías con Usuario NO Pertenece a Cuenta -")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-class ProductoApplicationUserTests {
+class CategoriaApplicationUserTests {
 
     @Value(value = "${local.server.port}")
     private int port;
 
     @Autowired
     private TestRestTemplate restTemplate;
-
-    @Autowired
-    private ProductoRepository productoRepo;
 
     @Autowired
     private CategoriaRepository categoriaRepo;
@@ -93,7 +89,7 @@ class ProductoApplicationUserTests {
                 }
             };
         }
-        
+
         @Bean @Primary
         CuentaService cuentaService() {
             return new CuentaService(null, null) {
@@ -107,16 +103,12 @@ class ProductoApplicationUserTests {
                     return java.util.Optional.of(c);
                 }
                 @Override
-                public boolean puedeCrearProducto(Integer cuentaId, int actuales, UsuarioDTO u) {
-                    return true;
-                }
-                @Override
                 public boolean puedeCrearCategoria(Integer cuentaId, int actuales, UsuarioDTO u) {
                     return true;
                 }
             };
         }
-        
+
         @Bean @Primary
         public JwtRequestFilter jwtRequestFilter() {
             return new JwtRequestFilter() {
@@ -125,72 +117,48 @@ class ProductoApplicationUserTests {
                     HttpServletRequest request,
                     HttpServletResponse response,
                     FilterChain chain
-                    ) throws ServletException, IOException {
-                        // No parseamos nada, simplemente delegamos
-                        chain.doFilter(request, response);
-                    }
-                };
-            }
-            
-            @Bean @Primary
-            SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-                http
+                ) throws ServletException, IOException {
+                    chain.doFilter(request, response);
+                }
+            };
+        }
+
+        @Bean @Primary
+        SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+            http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
-                return http.build();
+            return http.build();
         }
     }
-    
+
     @BeforeEach
     void setup() {
-        productoRepo.deleteAll();
         categoriaRepo.deleteAll();
     }
-    
-        // Helper para construir URIs
+
     private static URI endpoint(int port, String pathAndQuery) {
         return URI.create("http://localhost:" + port + pathAndQuery);
     }
-    
 
     @Nested
-    @DisplayName("Hay productos")
-    public class usuarioNoPerteneceACuenta {
+    @DisplayName("Usuario no pertenece a cuenta")
+    class UsuarioNoPertenece {
+
         private Categoria cat;
-        private Producto prod;
 
         @BeforeEach
-        void datos() {
+        void init() {
             cat = new Categoria();
-            cat.setNombre("CatX");
+            cat.setNombre("CatPrivada");
             cat.setCuentaId(3);
-            // categoriaRepo.save(cat);
-            // cat = categoriaRepo.findById(cat.getId()).get();
-
-            prod = new Producto();
-            prod.setGtin("GTIN-123");
-            prod.setSku("SKU-123");
-            prod.setNombre("ProdA");
-            prod.setCuentaId(3);
-            prod.getCategorias().add(cat);
-            prod.setRelacionesOrigen(Collections.emptySet());
-            prod.setRelacionesDestino(Collections.emptySet());
-            prod.setAtributos(Collections.emptySet());
-            productoRepo.save(prod);
-        }
-        @Test @DisplayName("GET por idProducto → FORBIDDEN")
-        void getPorId() {
-            ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/producto?idProducto=" + prod.getId()))
-                    .header(AUTH_HEADER, TOKEN).build(),
-                Void.class);
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            categoriaRepo.save(cat);
         }
 
         @Test @DisplayName("GET por idCategoria → FORBIDDEN")
-        void getPorCategoria() {
+        void getPorIdCategoria() {
             ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/producto?idCategoria=" + cat.getId()))
+                RequestEntity.get(endpoint(port, "/categoria?idCategoria=" + cat.getId()))
                     .header(AUTH_HEADER, TOKEN).build(),
                 Void.class);
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
@@ -199,58 +167,19 @@ class ProductoApplicationUserTests {
         @Test @DisplayName("GET por idCuenta → FORBIDDEN")
         void getPorCuenta() {
             ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/producto?idCuenta=2"))
+                RequestEntity.get(endpoint(port, "/categoria?idCuenta=3"))
                     .header(AUTH_HEADER, TOKEN).build(),
                 Void.class);
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
 
-
-        @Test @DisplayName("POST crearProducto → FORBIDDEN")
-        void crearProducto() {
-            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
-            entrada.setGtin("NEW-GTIN");
-            entrada.setSku("SKU1");
-            entrada.setNombre("NuevoProd");
-            entrada.setTextoCorto("T1");
-            entrada.setMiniatura("img.png");
-            CategoriaDTO catDto = new CategoriaDTO();
-            catDto.setId(cat.getId());
-            catDto.setNombre("CatX");
-            catDto.setId(cat.getId());
-            entrada.setCategorias(Collections.singleton(catDto));
-            entrada.setAtributos(Collections.emptySet());
-            entrada.setRelaciones(Collections.emptySet());
-
-
-            ResponseEntity<ProductoDTO> resp = restTemplate.exchange(
-                RequestEntity.post(endpoint(port, "/producto?idCuenta=" + cat.getId()))
-                    .header(AUTH_HEADER, TOKEN)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(entrada),
-                ProductoDTO.class);
-
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        }
-
-        @Test @DisplayName("PUT actualizarProducto → FORBIDDEN")
-        void actualizarProducto() {
-            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
-            entrada.setGtin("GTIN-123");
-            entrada.setSku("SKU-123");
-            entrada.setNombre("ProdA-Edit");
-            entrada.setTextoCorto("TE");
-            entrada.setMiniatura("img2.png");
-            CategoriaDTO catDto = new CategoriaDTO();
-            catDto.setId(cat.getId());
-            catDto.setNombre("CatX");
-            catDto.setId(cat.getId());
-            entrada.setCategorias(Collections.singleton(catDto));
-
-            entrada.setAtributos(Collections.emptySet());
+        @Test @DisplayName("POST crearCategoria → FORBIDDEN")
+        void crearCategoria() {
+            CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
+            entrada.setNombre("NoPermitida");
 
             ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.put(endpoint(port, "/producto/" + prod.getId()))
+                RequestEntity.post(endpoint(port, "/categoria?idCuenta=3"))
                     .header(AUTH_HEADER, TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),
@@ -259,15 +188,30 @@ class ProductoApplicationUserTests {
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
 
-        @Test @DisplayName("DELETE eliminarProducto → FORBIDDEN")
-        void eliminarProducto() {
+        @Test @DisplayName("PUT actualizarCategoria → FORBIDDEN")
+        void actualizarCategoria() {
+            CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
+            entrada.setNombre("IntentoEditar");
+
             ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.delete(endpoint(port, "/producto/" + prod.getId()))
+                RequestEntity.put(endpoint(port, "/categoria/" + cat.getId()))
+                    .header(AUTH_HEADER, TOKEN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
+        @Test @DisplayName("DELETE eliminarCategoria → FORBIDDEN")
+        void eliminarCategoria() {
+            ResponseEntity<Void> resp = restTemplate.exchange(
+                RequestEntity.delete(endpoint(port, "/categoria/" + cat.getId()))
                     .header(AUTH_HEADER, TOKEN)
                     .build(),
                 Void.class);
+
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
-        
     }
 }

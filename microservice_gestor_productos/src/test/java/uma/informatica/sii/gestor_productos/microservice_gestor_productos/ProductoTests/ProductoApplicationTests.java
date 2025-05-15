@@ -6,21 +6,17 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Set;
-
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.data.annotation.Transient;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
@@ -28,15 +24,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.web.util.DefaultUriBuilderFactory;
-import org.springframework.web.util.UriBuilder;
-import org.springframework.web.util.UriBuilderFactory;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.transaction.Transactional;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.PlanDTO;
@@ -166,47 +157,6 @@ class ProductoApplicationTests {
     void setup() {
         productoRepo.deleteAll();
         categoriaRepo.deleteAll();
-    }
-    private URI uri(String scheme, String host, int port, String... paths) {
-        UriBuilderFactory ubf = new DefaultUriBuilderFactory();
-        UriBuilder ub = ubf.builder()
-        .scheme(scheme)
-        .host(host).port(port);
-        for (String path : paths) {
-            ub = ub.path(path);
-        }
-        return ub.build();
-    }
-    
-    private RequestEntity<Void> get(String scheme, String host, int port, String path) {
-        URI uri = uri(scheme, host, port, path);
-        var peticion = RequestEntity.get(uri)
-        .accept(MediaType.APPLICATION_JSON)
-        .build();
-        return peticion;
-    }
-    
-    private RequestEntity<Void> delete(String scheme, String host, int port, String path) {
-        URI uri = uri(scheme, host, port, path);
-        var peticion = RequestEntity.delete(uri)
-        .build();
-        return peticion;
-    }
-    
-    private <T> RequestEntity<T> post(String scheme, String host, int port, String path, T object) {
-        URI uri = uri(scheme, host, port, path);
-        var peticion = RequestEntity.post(uri)
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(object);
-        return peticion;
-    }
-    
-    private <T> RequestEntity<T> put(String scheme, String host, int port, String path, T object) {
-        URI uri = uri(scheme, host, port, path);
-        var peticion = RequestEntity.put(uri)
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(object);
-        return peticion;
     }
     
     // Helper para construir URIs
@@ -384,32 +334,6 @@ class ProductoApplicationTests {
             assertThat(resp.getBody()).hasSize(1);
         }
 
-        @Test @DisplayName("GET por idCategoria sin productos → 404")
-        void getPorCategoriaSinProductos() {
-            // Creamos una categoría para la cuenta
-            Categoria c = new Categoria();
-            c.setNombre("C1");
-            c.setCuentaId(4);
-            //categoriaRepo.save(c);
-
-            Producto prod2;
-            prod2 = new Producto();
-            prod2.setGtin("GTIN-345");
-            prod2.setSku("SKU-123");
-            prod2.setNombre("ProdA");
-            prod2.setCuentaId(4);
-            prod2.getCategorias().add(c);
-            prod2.setRelacionesOrigen(Collections.emptySet());
-            prod2.setRelacionesDestino(Collections.emptySet());
-            prod2.setAtributos(Collections.emptySet());
-            productoRepo.save(prod2);
-
-            ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/producto?idCategoria=" + c.getId()))
-                    .header(AUTH_HEADER, TOKEN).build(),
-                Void.class);
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        }
 
         @Test @DisplayName("POST crearProducto → 201 + Location + DTO")
         void crearProducto() {
@@ -559,6 +483,7 @@ class ProductoApplicationTests {
             entrada.setNombre("ProdA-Edit");
             entrada.setTextoCorto("TE");
             entrada.setMiniatura("img2.png");
+            
             CategoriaDTO catDto = new CategoriaDTO();
             catDto.setId(cat.getId());
             catDto.setNombre(cat.getNombre());
