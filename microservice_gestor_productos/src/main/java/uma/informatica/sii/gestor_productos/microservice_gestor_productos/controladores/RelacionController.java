@@ -39,7 +39,7 @@ public class RelacionController {
         if (idRelacion != null) count++;
         if (idCuenta != null) count++;
 
-        if (count != 1) {
+        if (count > 1) {
             return ResponseEntity.badRequest().body("Debe proporcionar exactamente un parámetro de consulta.");
         }
 
