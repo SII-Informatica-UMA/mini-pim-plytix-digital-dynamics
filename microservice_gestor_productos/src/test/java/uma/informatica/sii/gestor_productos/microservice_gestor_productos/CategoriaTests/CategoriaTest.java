@@ -105,7 +105,7 @@ class CategoriaTest {
                 }
                 @Override
                 public boolean puedeCrearCategoria(Integer cuentaId, int actuales, UsuarioDTO u) {
-                    return true;
+                    return false;
                 }
             };
         }
@@ -175,6 +175,21 @@ class CategoriaTest {
                     .body(entrada),
                 CategoriaDTO.class);
 
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
+        @Test @DisplayName("POST crearCategoria sin permisos suficientes → 403")
+        void crearCategoriaSinPermisos() {
+            CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
+            entrada.setNombre("OtraCategoria");
+    
+            ResponseEntity<String> resp = restTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/categoria?idCuenta=3"))
+                    .header(AUTH_HEADER, TOKEN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                String.class);
+    
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
     }

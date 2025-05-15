@@ -256,5 +256,21 @@ class CategoriaApplicationTests {
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(categoriaRepo.findById(cat.getId())).isEmpty();
         }
+
+
+    @Test @DisplayName("POST crearCategoria nombre existente → 400")
+    void crearCategoriaNombreExistente() {
+        CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
+        entrada.setNombre(cat.getNombre());
+
+        ResponseEntity<String> resp = restTemplate.exchange(
+            RequestEntity.post(endpoint(port, "/categoria?idCuenta=2"))
+                .header(AUTH_HEADER, TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(entrada),
+            String.class); 
+
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }     
     }
 }
