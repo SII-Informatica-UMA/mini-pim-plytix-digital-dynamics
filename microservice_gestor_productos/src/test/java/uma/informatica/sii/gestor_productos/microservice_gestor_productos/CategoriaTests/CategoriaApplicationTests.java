@@ -258,19 +258,19 @@ class CategoriaApplicationTests {
         }
 
 
-    @Test @DisplayName("POST crearCategoria nombre existente → 400")
-    void crearCategoriaNombreExistente() {
-        CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
-        entrada.setNombre(cat.getNombre());
+        @Test @DisplayName("POST crearCategoria nombre existente → 400")
+        void crearCategoriaNombreExistente() {
+            CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
+            entrada.setNombre(cat.getNombre());
 
-        ResponseEntity<String> resp = restTemplate.exchange(
-            RequestEntity.post(endpoint(port, "/categoria?idCuenta=2"))
-                .header(AUTH_HEADER, TOKEN)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(entrada),
-            String.class); 
+            ResponseEntity<String> resp = restTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/categoria?idCuenta=2"))
+                    .header(AUTH_HEADER, TOKEN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                String.class); 
 
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-    }     
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }     
     }
 }
