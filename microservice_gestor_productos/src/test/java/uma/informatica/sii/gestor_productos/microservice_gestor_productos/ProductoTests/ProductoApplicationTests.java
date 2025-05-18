@@ -8,6 +8,7 @@ import java.util.Set;
 
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -235,6 +236,39 @@ class ProductoApplicationTests {
             //Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         }
+
+        @Test 
+        @DisplayName("PUT actualizar producto inexistente da 404")
+        void putIdNoExiste() {
+            //Arrange 
+            ProductoEntradaDTO dummy = new ProductoEntradaDTO();
+            //Act
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.put(endpoint(port, "/producto/999"))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(dummy),
+                Void.class);
+            //Assert
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
+
+        @Test 
+        @DisplayName("POST crear producto sin idCuenta da 400 [ERROR EN EL SERVICIO]")
+        void postSinIdCuenta() {
+            //Arrange 
+            ProductoEntradaDTO dummy = new ProductoEntradaDTO();
+            //Act
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/producto"))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(dummy),
+                Void.class);
+            //Assert
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
     }
 
 
@@ -562,21 +596,19 @@ class ProductoApplicationTests {
                         "[{\"id\":1,\"role\":\"ADMINISTRADOR\"}]", 
                         MediaType.APPLICATION_JSON
                     ));
-
+            
             // Arrange: creamos un producto con el GTIN
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
-            entrada.setGtin("GTIN-123");
-            entrada.setSku("SKU1");
-            entrada.setNombre("NuevoProd");
-            entrada.setTextoCorto("T1");
-            entrada.setMiniatura("img.png");
+            entrada.setGtin(prod.getGtin());
+            entrada.setSku("SKU-123");
+            entrada.setNombre("ProdB");
             CategoriaDTO catDto = new CategoriaDTO();
             catDto.setId(cat.getId());
             catDto.setNombre("CatX");
             catDto.setId(cat.getId());
             entrada.setCategorias(Collections.singleton(catDto));
-            entrada.setAtributos(Collections.emptySet());
             entrada.setRelaciones(Collections.emptySet());
+            entrada.setAtributos(Collections.emptySet());;
 
             // Act: intentamos crear otro producto con el mismo GTIN
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
@@ -653,6 +685,69 @@ class ProductoApplicationTests {
             assertThat(resp.getBody().getNombre()).isEqualTo("ProdA-Edit");
 
             mockServer.verify();
+        }
+
+        @Test @DisplayName("PUT actualizarProducto con GTIN existente devuelve 403")
+        void actualizarProductoConGtinExistente() {
+
+            // 1) getUsuarioConectado()
+            URI uriUsuarioRoot = UriComponentsBuilder
+                .fromUriString(baseUrl + "/usuario")
+                .build().toUri();
+            mockServer.expect(requestTo(uriUsuarioRoot))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess(
+                        "[{\"id\":1,\"role\":\"ADMINISTRADOR\"}]", 
+                        MediaType.APPLICATION_JSON
+                    ));
+            // 2) getUsuario(id)
+            URI uriUsuarioById = UriComponentsBuilder
+                .fromUriString(baseUrl + "/usuario")
+                .queryParam("id", 1)
+                .build().toUri();
+            mockServer.expect(ExpectedCount.manyTimes(), requestTo(uriUsuarioById))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess(
+                        "[{\"id\":1,\"role\":\"ADMINISTRADOR\"}]", 
+                        MediaType.APPLICATION_JSON
+                    ));
+
+            // Arrange: crea un segundo producto con el mismo GTIN
+            Producto prod2 = new Producto();
+            prod2.setGtin("GTIN-456");
+            prod2.setSku("SKU-456");
+            prod2.setNombre("ProdB");
+            prod2.setCuentaId(prod.getCuentaId());
+            prod2.setRelacionesOrigen(Collections.emptySet());
+            prod2.setRelacionesDestino(Collections.emptySet());
+            prod2.setAtributos(Collections.emptySet());
+            productoRepo.save(prod2);
+
+            // Act
+            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+            entrada.setGtin(prod2.getGtin());
+            entrada.setSku(prod.getSku());
+            entrada.setNombre("ProdA-Edit");
+            entrada.setTextoCorto("TE");
+            entrada.setMiniatura("img2.png");
+            CategoriaDTO catDto = new CategoriaDTO();
+            catDto.setId(cat.getId());
+            catDto.setNombre(cat.getNombre());
+            catDto.setId(cat.getId());
+            entrada.setCategorias(Collections.singleton(catDto));
+            
+            entrada.setAtributos(Collections.emptySet());
+
+            RequestEntity<ProductoEntradaDTO> req = RequestEntity
+                .put(endpoint(port, "/producto/" + prod.getId()))
+                .header("Authorization", "Bearer " + JWT_ADMIN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(entrada);
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
+            // Assert
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
         }
 
         @Test
@@ -1319,6 +1414,39 @@ class ProductoApplicationTests {
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 
             mockServer.verify();
+        }
+
+        @Test @DisplayName("POST devuelve 403 si getUsuario(id) devuelve vacío")
+        void crearProductoSinUsuarioValidoDa403() {
+        // 1) getUsuarioConectado() → ADMIN
+        URI uriRoot = UriComponentsBuilder.fromUriString(baseUrl + "/usuario").build().toUri();
+        mockServer.expect(requestTo(uriRoot))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess("[{\"id\":1,\"role\":\"ADMINISTRADOR\"}]", MediaType.APPLICATION_JSON));
+        // 2) getUsuario(id=1) → respuesta vacía []
+        URI uriById = UriComponentsBuilder.fromUriString(baseUrl + "/usuario").queryParam("id",1).build().toUri();
+        mockServer.expect(ExpectedCount.manyTimes(), requestTo(uriById))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+
+        ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+        entrada.setGtin("X"); entrada.setSku("Y"); entrada.setNombre("Z");
+        CategoriaDTO catDto = new CategoriaDTO();
+        catDto.setId(cat.getId()); catDto.setNombre(cat.getNombre());
+        entrada.setCategorias(Set.of(catDto));
+        entrada.setAtributos(Collections.emptySet());
+        entrada.setRelaciones(Collections.emptySet());
+
+        RequestEntity<ProductoEntradaDTO> req = RequestEntity
+            .post(endpoint(port, "/producto?idCuenta=" + cat.getCuentaId()))
+            .header("Authorization", "Bearer " + JWT_ADMIN)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(entrada);
+
+        ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        mockServer.verify();
         }
     }
 
