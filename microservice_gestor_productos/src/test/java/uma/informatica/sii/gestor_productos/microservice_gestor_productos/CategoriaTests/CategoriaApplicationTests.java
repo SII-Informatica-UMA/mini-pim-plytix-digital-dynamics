@@ -156,22 +156,23 @@ class CategoriaApplicationTests {
         @Test @DisplayName("GET sin cuenta → 400")
         void getSinCuenta() {
             ResponseEntity<String> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/categoria"))
+                RequestEntity.get(endpoint(port, "/categoria-producto"))
                     .header(AUTH_HEADER, TOKEN).build(),
                 String.class);
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
 
-        @Test @DisplayName("GET cuenta inexistente → 404")
+        @Test @DisplayName("GET cuenta inexistente devuelve []")
         void getCuentaNoExiste() {
             ResponseEntity<String> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/categoria?idCuenta=999"))
+                RequestEntity.get(endpoint(port, "/categoria-producto?idCuenta=999"))
                     .header(AUTH_HEADER, TOKEN)
                     .build(),
                 String.class
             );
         
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(resp.getBody()).isEqualTo("[]");
             // Optional: remove this to avoid brittle checks
             // assertThat(resp.getBody()).contains("Cuenta no encontrada");
         }
@@ -181,7 +182,7 @@ class CategoriaApplicationTests {
         @Test @DisplayName("GET cuenta válida pero sin categorías → []")
         void getCuentaSinCategorias() {
             ResponseEntity<CategoriaDTO[]> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/categoria?idCuenta=2"))
+                RequestEntity.get(endpoint(port, "/categoria-producto?idCuenta=2"))
                     .header(AUTH_HEADER, TOKEN).build(),
                 CategoriaDTO[].class);
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -194,7 +195,7 @@ class CategoriaApplicationTests {
             entrada.setNombre("NuevaCategoria");
 
             ResponseEntity<CategoriaDTO> resp = restTemplate.exchange(
-                RequestEntity.post(endpoint(port, "/categoria?idCuenta=2"))
+                RequestEntity.post(endpoint(port, "/categoria-producto?idCuenta=2"))
                     .header(AUTH_HEADER, TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),
@@ -223,7 +224,7 @@ class CategoriaApplicationTests {
         @Test @DisplayName("GET por idCategoria → OK")
         void getPorIdCategoria() {
             ResponseEntity<CategoriaDTO> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/categoria?idCategoria=" + cat.getId()))
+                RequestEntity.get(endpoint(port, "/categoria-producto?idCategoria=" + cat.getId()))
                     .header(AUTH_HEADER, TOKEN).build(),
                 CategoriaDTO.class);
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -236,7 +237,7 @@ class CategoriaApplicationTests {
             entrada.setNombre("Renombrada");
 
             ResponseEntity<CategoriaDTO> resp = restTemplate.exchange(
-                RequestEntity.put(endpoint(port, "/categoria/" + cat.getId()))
+                RequestEntity.put(endpoint(port, "/categoria-producto/" + cat.getId()))
                     .header(AUTH_HEADER, TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),
@@ -249,7 +250,7 @@ class CategoriaApplicationTests {
         @Test @DisplayName("DELETE eliminarCategoria → 200")
         void eliminarCategoria() {
             ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.delete(endpoint(port, "/categoria/" + cat.getId()))
+                RequestEntity.delete(endpoint(port, "/categoria-producto/" + cat.getId()))
                     .header(AUTH_HEADER, TOKEN).build(),
                 Void.class);
 
@@ -264,7 +265,7 @@ class CategoriaApplicationTests {
             entrada.setNombre(cat.getNombre());
 
             ResponseEntity<String> resp = restTemplate.exchange(
-                RequestEntity.post(endpoint(port, "/categoria?idCuenta=2"))
+                RequestEntity.post(endpoint(port, "/categoria-producto?idCuenta=2"))
                     .header(AUTH_HEADER, TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),

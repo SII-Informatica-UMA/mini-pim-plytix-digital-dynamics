@@ -1144,6 +1144,43 @@ class ProductoApplicationTests {
             mockServer.verify();
         }
 
+        @Test @DisplayName("GET por idCuenta inexistente devuelve []")
+        void getPorCuentaInexistenteDevuelve404() {
+            // 1) getUsuarioConectado()
+            URI uriUsuarioRoot = UriComponentsBuilder
+                .fromUriString(baseUrl + "/usuario")
+                .build().toUri();
+            mockServer.expect(requestTo(uriUsuarioRoot))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess(
+                        "[{\"id\":1,\"role\":\"ADMINISTRADOR\"}]", 
+                        MediaType.APPLICATION_JSON
+                    ));
+
+            // 2) getUsuario(id=1)
+            URI uriUsuarioById = UriComponentsBuilder
+                .fromUriString(baseUrl + "/usuario")
+                .queryParam("id", 1)
+                .build().toUri();
+            mockServer.expect(ExpectedCount.manyTimes(), requestTo(uriUsuarioById))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess(
+                        "[{\"id\":1,\"role\":\"ADMINISTRADOR\"}]", 
+                        MediaType.APPLICATION_JSON
+                    ));
+
+            // Act
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                getRequest("/producto?idCuenta=999"),
+                Void.class
+            );
+            // Assert
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(resp.getBody()).isNull();
+
+            mockServer.verify();
+        }
+
         @Test @DisplayName("POST crearProducto devuelve FORBIDDEN")
         void crearProductoDevuelveForbidden() {
             // 1) getUsuarioConectado()

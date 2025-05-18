@@ -158,7 +158,7 @@ class CategoriaApplicationUserTests {
         @Test @DisplayName("GET por idCategoria → FORBIDDEN")
         void getPorIdCategoria() {
             ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/categoria?idCategoria=" + cat.getId()))
+                RequestEntity.get(endpoint(port, "/categoria-producto?idCategoria=" + cat.getId()))
                     .header(AUTH_HEADER, TOKEN).build(),
                 Void.class);
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
@@ -167,7 +167,7 @@ class CategoriaApplicationUserTests {
         @Test @DisplayName("GET por idCuenta → FORBIDDEN")
         void getPorCuenta() {
             ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/categoria?idCuenta=3"))
+                RequestEntity.get(endpoint(port, "/categoria-producto?idCuenta=3"))
                     .header(AUTH_HEADER, TOKEN).build(),
                 Void.class);
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
@@ -179,7 +179,7 @@ class CategoriaApplicationUserTests {
             entrada.setNombre("NoPermitida");
 
             ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.post(endpoint(port, "/categoria?idCuenta=3"))
+                RequestEntity.post(endpoint(port, "/categoria-producto?idCuenta=3"))
                     .header(AUTH_HEADER, TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),
@@ -194,7 +194,7 @@ class CategoriaApplicationUserTests {
             entrada.setNombre("IntentoEditar");
 
             ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.put(endpoint(port, "/categoria/" + cat.getId()))
+                RequestEntity.put(endpoint(port, "/categoria-producto/" + cat.getId()))
                     .header(AUTH_HEADER, TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),
@@ -206,7 +206,7 @@ class CategoriaApplicationUserTests {
         @Test @DisplayName("DELETE eliminarCategoria → FORBIDDEN")
         void eliminarCategoria() {
             ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.delete(endpoint(port, "/categoria/" + cat.getId()))
+                RequestEntity.delete(endpoint(port, "/categoria-producto/" + cat.getId()))
                     .header(AUTH_HEADER, TOKEN)
                     .build(),
                 Void.class);

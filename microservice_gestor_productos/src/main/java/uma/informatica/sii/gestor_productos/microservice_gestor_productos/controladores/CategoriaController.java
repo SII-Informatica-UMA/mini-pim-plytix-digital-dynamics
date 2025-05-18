@@ -11,7 +11,7 @@ import java.net.URI;
 
 
 @RestController
-@RequestMapping("/categoria")
+@RequestMapping("/categoria-producto")
 public class CategoriaController {
 
     private final CategoriaService categoriaService;

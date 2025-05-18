@@ -1,7 +1,7 @@
 package uma.informatica.sii.gestor_productos.microservice_gestor_productos.servicios;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+
+
 import org.springframework.stereotype.Service;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.Usuario;
@@ -51,10 +51,10 @@ public class CategoriaService {
     public List<CategoriaDTO> getCategoriasByidCuenta(Integer idCuenta, String jwtToken) {
         Long idUsuario = usuarioService.getUsuarioConectado(jwtToken)
                 .map(UsuarioDTO::getId)
-                .orElseThrow(CredencialesNoValidas::new);
+                .orElseThrow(() -> new CredencialesNoValidas());
     
         UsuarioDTO usuario = usuarioService.getUsuario(idUsuario, jwtToken)
-                .orElseThrow(SinPermisosSuficientes::new);
+                .orElseThrow(() -> new SinPermisosSuficientes());
     
         if (!usuario.getRole().equals(Usuario.Rol.ADMINISTRADOR)) {
             boolean pertenece = usuarioService.usuarioPerteneceACuenta(idCuenta, usuario.getId(), jwtToken);
@@ -63,9 +63,6 @@ public class CategoriaService {
             }
         }
     
-
-        cuentaService.getCuentaPorId(idCuenta)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cuenta no encontrada"));
     
         return categoriaRepository.findAll().stream()
                 .filter(cat -> cat.getCuentaId().equals(idCuenta))

@@ -155,7 +155,7 @@ class CategoriaTest {
             categoriaRepo.save(c);
 
             ResponseEntity<Void> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/categoria?idCuenta=" + c.getCuentaId()))
+                RequestEntity.get(endpoint(port, "/categoria-producto?idCuenta=" + c.getCuentaId()))
                     .header(AUTH_HEADER, TOKEN).build(),
                 Void.class);
 
@@ -169,7 +169,7 @@ class CategoriaTest {
             entrada.setNombre("NoPermitida");
 
             ResponseEntity<CategoriaDTO> resp = restTemplate.exchange(
-                RequestEntity.post(endpoint(port, "/categoria?idCuenta=4")) // cuenta NO autorizada
+                RequestEntity.post(endpoint(port, "/categoria-producto?idCuenta=4")) // cuenta NO autorizada
                     .header(AUTH_HEADER, TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),
@@ -184,7 +184,7 @@ class CategoriaTest {
             entrada.setNombre("OtraCategoria");
     
             ResponseEntity<String> resp = restTemplate.exchange(
-                RequestEntity.post(endpoint(port, "/categoria?idCuenta=3"))
+                RequestEntity.post(endpoint(port, "/categoria-producto?idCuenta=3"))
                     .header(AUTH_HEADER, TOKEN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),
