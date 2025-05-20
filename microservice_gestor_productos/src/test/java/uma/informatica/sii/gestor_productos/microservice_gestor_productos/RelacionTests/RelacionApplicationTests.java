@@ -2,31 +2,24 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.Relac
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -36,16 +29,6 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioService;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.PlanDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionEntradaDTO;
@@ -53,7 +36,6 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Relacion;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.RelacionProducto;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.security.JwtRequestFilter;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
 
@@ -317,6 +299,52 @@ class RelacionApplicationTests {
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             mockServer.verify();
         }
+
+        @Test @DisplayName("DELETE eliminarRelacion → 403 si la relación está en uso entre productos")
+        void eliminarRelacionConProductos() {
+            // 1) Stub de usuario Admin
+            stubUsuarioAdmin();
+            // (opcionalmente stubCuentaPlan si tu endpoint lo requiere)
+
+            // 2) Creamos producto origen
+            Producto ori = new Producto();
+            ori.setGtin("GTIN-998");
+            ori.setSku("SKU-998");
+            ori.setNombre("ProdOrigen");
+            ori.setCuentaId(rel.getCuentaId());
+            ori.setRelacionesOrigen(Collections.emptySet());
+            ori.setRelacionesDestino(Collections.emptySet());
+            ori.setAtributos(Collections.emptySet());
+            productoRepo.save(ori);
+
+            // 3) Creamos producto destino
+            Producto dest = new Producto();
+            dest.setGtin("GTIN-999");
+            dest.setSku("SKU-999");
+            dest.setNombre("ProdDestino");
+            dest.setCuentaId(rel.getCuentaId());
+            dest.setRelacionesOrigen(Collections.emptySet());
+            dest.setRelacionesDestino(Collections.emptySet());
+            dest.setAtributos(Collections.emptySet());
+            productoRepo.save(dest);
+
+            // 4) Asignamos la relación entre ambos
+            RelacionProducto relProd = new RelacionProducto();
+            relProd.setTipoRelacion(rel);
+            relProd.setProductoOrigen(ori);
+            relProd.setProductoDestino(dest);
+            relacionProductoRepo.save(relProd);
+
+            // 5) Intentamos borrar la relación
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                deleteRequest("/relacion/" + rel.getId()),
+                Void.class
+            );
+
+            // 6) Comprobamos 403 Forbidden
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            mockServer.verify();
+        }
     }
 
     @Nested
@@ -437,10 +465,8 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
     }
-}
 
-/*
-@Nested
+    @Nested
     @DisplayName("Usuario no puede crear relación (plan lleno)")
     class UsuarioNoPuedeCrearRelacion {
 
@@ -510,51 +536,7 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
     }
+}
 
-     DENTRO DE CON RELACIONES AL FINAL
-    @Test @DisplayName("DELETE eliminarRelacion → 403 si la relación está en uso entre productos")
-        void eliminarRelacionConProductos() {
-            // 1) Stub de usuario Admin
-            stubUsuarioAdmin();
-            // (opcionalmente stubCuentaPlan si tu endpoint lo requiere)
 
-            // 2) Creamos producto origen
-            Producto ori = new Producto();
-            ori.setGtin("GTIN-998");
-            ori.setSku("SKU-998");
-            ori.setNombre("ProdOrigen");
-            ori.setCuentaId(rel.getCuentaId());
-            ori.setRelacionesOrigen(Collections.emptySet());
-            ori.setRelacionesDestino(Collections.emptySet());
-            ori.setAtributos(Collections.emptySet());
-            productoRepo.save(ori);
 
-            // 3) Creamos producto destino
-            Producto dest = new Producto();
-            dest.setGtin("GTIN-999");
-            dest.setSku("SKU-999");
-            dest.setNombre("ProdDestino");
-            dest.setCuentaId(rel.getCuentaId());
-            dest.setRelacionesOrigen(Collections.emptySet());
-            dest.setRelacionesDestino(Collections.emptySet());
-            dest.setAtributos(Collections.emptySet());
-            productoRepo.save(dest);
-
-            // 4) Asignamos la relación entre ambos
-            RelacionProducto relProd = new RelacionProducto();
-            relProd.setTipoRelacion(rel);
-            relProd.setProductoOrigen(ori);
-            relProd.setProductoDestino(dest);
-            relacionProductoRepo.save(relProd);
-
-            // 5) Intentamos borrar la relación
-            ResponseEntity<Void> resp = testRestTemplate.exchange(
-                deleteRequest("/relacion/" + rel.getId()),
-                Void.class
-            );
-
-            // 6) Comprobamos 403 Forbidden
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-            mockServer.verify();
-        }
-*/
