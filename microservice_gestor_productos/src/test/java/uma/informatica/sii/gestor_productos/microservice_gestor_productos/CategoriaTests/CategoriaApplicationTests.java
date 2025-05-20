@@ -2,11 +2,8 @@ package uma.informatica.sii.gestor_productos.microservice_gestor_productos.Categ
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
+
 import java.net.URI;
-import java.util.Collections;
-import java.util.Optional;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,33 +12,19 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.UsuarioService;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaDTO;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.CuentaService;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.Cuenta.PlanDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaEntradaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
@@ -49,7 +32,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.reposi
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
-import uma.informatica.sii.gestor_productos.microservice_gestor_productos.security.JwtRequestFilter;
+
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -99,11 +82,7 @@ class CategoriaApplicationTests {
             .build();
     }
 
-    private RequestEntity<Void> deleteRequest(String path) {
-        return RequestEntity.delete(endpoint(port, path))
-            .header("Authorization", "Bearer " + JWT_ADMIN)
-            .build();
-    }
+
     
 
     @BeforeEach
