@@ -19,6 +19,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
@@ -26,6 +27,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.web.client.ExpectedCount;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -41,149 +46,145 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.C
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.CategoriaEntradaDTO;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.entity.Categoria;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.CategoriaRepository;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.ProductoRepository;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionProductoRepository;
+import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.security.JwtRequestFilter;
-
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 @SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = {
-        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration",
-        "spring.main.allow-bean-definition-overriding=true"
-    }
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
 @DisplayName("Tests de Categorías -")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class CategoriaApplicationTests {
 
+    public static final String JWT_ADMIN = "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlIjoiQURNSU5JU1RSQURPUiIsInN1YiI6IjEiLCJpYXQiOjE3NDQ5MTQ3MDQsImV4cCI6MTgwNzk4NjcwNH0.YIXpA6aXXJ6q8tKjAAnVKT_uumuTdbhkLVieaCGf4vFtOMcYoNOH-FarolDduIQ3ulN-Gxy4TWBymK3ypZ38bQ";
     @Value(value = "${local.server.port}")
     private int port;
-
+    
     @Autowired
-    private TestRestTemplate restTemplate;
-
+    private TestRestTemplate testRestTemplate;
+    
+    @Autowired
+    private RestTemplate restTemplate;
+    
+    @Value("${servicio.usuarios.baseurl}")
+    private String baseUrl;
+    
+    
+    private MockRestServiceServer mockServer;
+    
+    @Autowired
+    private ProductoRepository productoRepo;
+    
     @Autowired
     private CategoriaRepository categoriaRepo;
 
-    private static final String AUTH_HEADER = "Authorization";
-    private static final String TOKEN = "Bearer token";
+    @Autowired
+    private RelacionProductoRepository relacionProductoRepo;
 
-    @TestConfiguration
-    static class StubsConfig {
-        @Bean @Primary
-        UsuarioService usuarioService() {
-            return new UsuarioService(null, null) {
-                @Override
-                public java.util.Optional<UsuarioDTO> getUsuarioConectado(String jwt) {
-                    UsuarioDTO u = new UsuarioDTO();
-                    u.setId(1L);
-                    u.setRole(uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.Usuario.Rol.ADMINISTRADOR);
-                    return java.util.Optional.of(u);
-                }
-                @Override
-                public boolean usuarioPerteneceACuenta(Integer idCuenta, Long idUsuario, String jwt) {
-                    return true;
-                }
-                @Override
-                public java.util.Optional<UsuarioDTO> getUsuario(Long id, String jwt) {
-                    UsuarioDTO u = new UsuarioDTO();
-                    u.setId(id);
-                    u.setRole(uma.informatica.sii.gestor_productos.microservice_gestor_productos.Usuario.Usuario.Rol.ADMINISTRADOR);
-                    return java.util.Optional.of(u);
-                }
-            };
-        }
+    @Autowired
+    private RelacionRepository relacionRepo;
 
-        @Bean @Primary
-        CuentaService cuentaService() {
-            return new CuentaService(null, null) {
-                @Override
-                public Optional<CuentaDTO> getCuentaPorId(Integer cuentaId) {
-                    if (cuentaId == 1 || cuentaId == 2 || cuentaId == 3) {
-                        CuentaDTO c = new CuentaDTO();
-                        c.setId(cuentaId);
-                        PlanDTO plan = new PlanDTO();
-                        plan.setMaxProductos(1000);
-                        c.setPlan(plan);
-                        return Optional.of(c);
-                    } else {
-                        return Optional.empty(); 
-                    }
-                }
-        
-                @Override
-                public boolean puedeCrearCategoria(Integer cuentaId, int actuales, UsuarioDTO u) {
-                    return true;
-                }
-            };
-        }
-        
-
-        @Bean @Primary
-        public JwtRequestFilter jwtRequestFilter() {
-            return new JwtRequestFilter() {
-                @Override
-                protected void doFilterInternal(
-                    HttpServletRequest request,
-                    HttpServletResponse response,
-                    FilterChain chain
-                ) throws ServletException, IOException {
-                    chain.doFilter(request, response);
-                }
-            };
-        }
-
-        @Bean @Primary
-        SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-            http
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
-            return http.build();
-        }
+    // Helper para construir URIs
+    private static URI endpoint(int port, String pathAndQuery) {
+        return URI.create("http://localhost:" + port + pathAndQuery);
     }
+    
+    private RequestEntity<Void> getRequest(String path) {
+        return RequestEntity.get(endpoint(port, path))
+            .header("Authorization", "Bearer " + JWT_ADMIN)
+            .build();
+    }
+
+    private RequestEntity<Void> deleteRequest(String path) {
+        return RequestEntity.delete(endpoint(port, path))
+            .header("Authorization", "Bearer " + JWT_ADMIN)
+            .build();
+    }
+    
 
     @BeforeEach
-    void setup() {
+    void init(){
+        // Limpiamos la base de datos antes de cada test
+        productoRepo.deleteAll();
         categoriaRepo.deleteAll();
-    }
-
-    private URI endpoint(int port, String pathAndQuery) {
-        return URI.create("http://localhost:" + port + pathAndQuery);
+        relacionProductoRepo.deleteAll();
+        relacionRepo.deleteAll();
     }
 
     @Nested
     @DisplayName("Cuando NO hay categorías")
     class SinCategorias {
+        private void stubUsuarioPerteneceCuenta(int cuentaId, boolean pertenece) {
+            URI uri = UriComponentsBuilder
+                .fromUriString(baseUrl + "/cuenta/" + cuentaId + "/usuarios")
+                .build().toUri();
+            String body = pertenece
+                ? "[{\"id\":1,\"role\":\"CLIENTE\"}]"
+                : "[]";
+            mockServer.expect(ExpectedCount.once(), requestTo(uri))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+        }
+        private void stubUsuarioCliente() {
+            URI uriRoot = UriComponentsBuilder
+                .fromUriString(baseUrl + "/usuario").build().toUri();
+            mockServer.expect(ExpectedCount.manyTimes(), requestTo(uriRoot))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess(
+                        "[{\"id\":1,\"role\":\"CLIENTE\"}]",
+                        MediaType.APPLICATION_JSON
+                    ));
 
-        @Test @DisplayName("GET sin cuenta → 400")
-        void getSinCuenta() {
-            ResponseEntity<String> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/categoria-producto"))
-                    .header(AUTH_HEADER, TOKEN).build(),
+            URI uriById = UriComponentsBuilder
+                .fromUriString(baseUrl + "/usuario")
+                .queryParam("id", 1)
+                .build().toUri();
+            mockServer.expect(ExpectedCount.manyTimes(), requestTo(uriById))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess(
+                        "[{\"id\":1,\"role\":\"CLIENTE\"}]",
+                        MediaType.APPLICATION_JSON
+                    ));
+        }
+        private void stubCuentaPlan(int maxCategorias) {
+            URI uriCuenta = UriComponentsBuilder.fromUriString(baseUrl + "/cuenta")
+                .queryParam("idCuenta", 3)
+                .build().toUri();
+            mockServer.expect(ExpectedCount.once(), requestTo(uriCuenta))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess(
+                        "[{\"id\":1,\"plan\":{\"maxProductos\":" + 0 + "}}]",
+                        MediaType.APPLICATION_JSON
+                    ));
+        }
+
+        @Test @DisplayName("GET sin parametros → 400")
+        void getSinParams() {
+            ResponseEntity<String> resp = testRestTemplate.exchange(
+                getRequest("/categoria-producto?"),
                 String.class);
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
 
         @Test @DisplayName("GET cuenta inexistente devuelve []")
         void getCuentaNoExiste() {
-            ResponseEntity<String> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/categoria-producto?idCuenta=999"))
-                    .header(AUTH_HEADER, TOKEN)
-                    .build(),
-                String.class
-            );
+            ResponseEntity<String> resp = testRestTemplate.exchange(
+                getRequest("/categoria-producto?idCuenta=9999"),
+                String.class);
         
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody()).isEqualTo("[]");
-            // Optional: remove this to avoid brittle checks
-            // assertThat(resp.getBody()).contains("Cuenta no encontrada");
+            
         }
         
-        
-
         @Test @DisplayName("GET cuenta válida pero sin categorías → []")
         void getCuentaSinCategorias() {
-            ResponseEntity<CategoriaDTO[]> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/categoria-producto?idCuenta=2"))
-                    .header(AUTH_HEADER, TOKEN).build(),
+            ResponseEntity<CategoriaDTO[]> resp = testRestTemplate.exchange(
+                getRequest("/categoria-producto?idCuenta=2"),
                 CategoriaDTO[].class);
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody()).isEmpty();
@@ -191,12 +192,13 @@ class CategoriaApplicationTests {
 
         @Test @DisplayName("POST crearCategoria válida → 201")
         void crearCategoria() {
+            
             CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
             entrada.setNombre("NuevaCategoria");
-
-            ResponseEntity<CategoriaDTO> resp = restTemplate.exchange(
+            
+            ResponseEntity<CategoriaDTO> resp = testRestTemplate.exchange(
                 RequestEntity.post(endpoint(port, "/categoria-producto?idCuenta=2"))
-                    .header(AUTH_HEADER, TOKEN)
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),
                 CategoriaDTO.class);
@@ -204,9 +206,70 @@ class CategoriaApplicationTests {
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
             assertThat(resp.getBody()).isNotNull();
             assertThat(resp.getBody().getNombre()).isEqualTo("NuevaCategoria");
+            
+        }
+
+        @Test
+        @DisplayName("GET por cuenta sin permiso → 403")
+        void getCategoriasSinPermiso() {
+            mockServer = MockRestServiceServer.createServer(restTemplate);
+            stubUsuarioCliente();
+            stubUsuarioPerteneceCuenta(4, false);
+            Categoria c = new Categoria();
+            c.setNombre("CatInvalida");
+            c.setCuentaId(4); // una cuenta NO autorizada (ver stubs)
+            categoriaRepo.save(c);
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/categoria-producto?idCuenta=" + c.getCuentaId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .build(),
+                Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            mockServer.verify();
+        }
+
+        @Test
+        @DisplayName("POST crearCategoria → FORBIDDEN")
+        void crearCategoriaNoPermitida() {
+            mockServer = MockRestServiceServer.createServer(restTemplate);
+            stubUsuarioCliente();
+            stubUsuarioPerteneceCuenta(4, false);
+            CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
+            entrada.setNombre("NoPermitida");
+
+            ResponseEntity<CategoriaDTO> resp = testRestTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/categoria-producto?idCuenta=4")) // cuenta NO autorizada
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                CategoriaDTO.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            mockServer.verify();
+        }
+
+        @Test @DisplayName("POST crearCategoria sin permisos suficientes por maxCateg → 403")
+        void crearCategoriaSinPermisos() {
+            mockServer = MockRestServiceServer.createServer(restTemplate);
+            stubUsuarioCliente();
+            stubUsuarioPerteneceCuenta(3, true);
+            stubCuentaPlan(0);
+            CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
+            entrada.setNombre("OtraCategoria");
+    
+            ResponseEntity<String> resp = testRestTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/categoria-producto?idCuenta=3"))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                String.class);
+    
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            mockServer.verify();
         }
     }
-
     @Nested
     @DisplayName("Con categorías existentes")
     class ConCategorias {
@@ -219,13 +282,33 @@ class CategoriaApplicationTests {
             cat.setNombre("Existente");
             cat.setCuentaId(2);
             categoriaRepo.save(cat);
+            mockServer = MockRestServiceServer.createServer(restTemplate);
+            stubUsuarioAdmin();
+        }
+        private void stubUsuarioAdmin() {
+            URI uriRoot = UriComponentsBuilder.fromUriString(baseUrl + "/usuario").build().toUri();
+            mockServer.expect(ExpectedCount.manyTimes(), requestTo(uriRoot))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess(
+                        "[{\"id\":1,\"role\":\"ADMINISTRADOR\"}]",
+                        MediaType.APPLICATION_JSON
+                    ));
+
+            URI uriById = UriComponentsBuilder.fromUriString(baseUrl + "/usuario")
+                .queryParam("id", 1).build().toUri();
+            mockServer.expect(ExpectedCount.manyTimes(), requestTo(uriById))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess(
+                        "[{\"id\":1,\"role\":\"ADMINISTRADOR\"}]",
+                        MediaType.APPLICATION_JSON
+                    ));
         }
 
         @Test @DisplayName("GET por idCategoria → OK")
         void getPorIdCategoria() {
-            ResponseEntity<CategoriaDTO> resp = restTemplate.exchange(
-                RequestEntity.get(endpoint(port, "/categoria-producto?idCategoria=" + cat.getId()))
-                    .header(AUTH_HEADER, TOKEN).build(),
+
+            ResponseEntity<CategoriaDTO> resp = testRestTemplate.exchange(
+                getRequest("/categoria-producto?idCategoria=" + cat.getId()),
                 CategoriaDTO.class);
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody().getNombre()).isEqualTo("Existente");
@@ -236,9 +319,9 @@ class CategoriaApplicationTests {
             CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
             entrada.setNombre("Renombrada");
 
-            ResponseEntity<CategoriaDTO> resp = restTemplate.exchange(
+            ResponseEntity<CategoriaDTO> resp = testRestTemplate.exchange(
                 RequestEntity.put(endpoint(port, "/categoria-producto/" + cat.getId()))
-                    .header(AUTH_HEADER, TOKEN)
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),
                 CategoriaDTO.class);
@@ -249,9 +332,10 @@ class CategoriaApplicationTests {
 
         @Test @DisplayName("DELETE eliminarCategoria → 200")
         void eliminarCategoria() {
-            ResponseEntity<Void> resp = restTemplate.exchange(
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.delete(endpoint(port, "/categoria-producto/" + cat.getId()))
-                    .header(AUTH_HEADER, TOKEN).build(),
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .build(),
                 Void.class);
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -264,14 +348,132 @@ class CategoriaApplicationTests {
             CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
             entrada.setNombre(cat.getNombre());
 
-            ResponseEntity<String> resp = restTemplate.exchange(
-                RequestEntity.post(endpoint(port, "/categoria-producto?idCuenta=2"))
-                    .header(AUTH_HEADER, TOKEN)
+            ResponseEntity<String> resp = testRestTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/categoria-producto?idCuenta=" + cat.getCuentaId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(entrada),
                 String.class); 
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         }     
+    }
+
+    @Nested
+    @DisplayName("Usuario no pertenece a cuenta")
+    class UsuarioNoPertenece {
+
+        private Categoria cat;
+        
+        @BeforeEach
+        void init() {
+            cat = new Categoria();
+            cat.setNombre("CatPrivada");
+            cat.setCuentaId(1);
+            categoriaRepo.save(cat);
+            mockServer = MockRestServiceServer.createServer(restTemplate);
+            stubUsuarioCliente();
+            stubUsuarioPerteneceCuenta(cat.getCuentaId(), false);
+        }
+        private void stubUsuarioCliente() {
+            URI uriRoot = UriComponentsBuilder
+                .fromUriString(baseUrl + "/usuario").build().toUri();
+            mockServer.expect(ExpectedCount.manyTimes(), requestTo(uriRoot))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess(
+                        "[{\"id\":1,\"role\":\"CLIENTE\"}]",
+                        MediaType.APPLICATION_JSON
+                    ));
+
+            URI uriById = UriComponentsBuilder
+                .fromUriString(baseUrl + "/usuario")
+                .queryParam("id", 1)
+                .build().toUri();
+            mockServer.expect(ExpectedCount.manyTimes(), requestTo(uriById))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess(
+                        "[{\"id\":1,\"role\":\"CLIENTE\"}]",
+                        MediaType.APPLICATION_JSON
+                    ));
+        }
+
+        private void stubUsuarioPerteneceCuenta(int cuentaId, boolean pertenece) {
+            URI uri = UriComponentsBuilder
+                .fromUriString(baseUrl + "/cuenta/" + cuentaId + "/usuarios")
+                .build().toUri();
+            String body = pertenece
+                ? "[{\"id\":1,\"role\":\"CLIENTE\"}]"
+                : "[]";
+            mockServer.expect(ExpectedCount.once(), requestTo(uri))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+        }
+
+        @Test @DisplayName("GET por idCategoria → FORBIDDEN")
+        void getPorIdCategoria() {
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/categoria-producto?idCategoria=" + cat.getId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .build(),
+                Void.class);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            mockServer.verify();
+        }
+
+        @Test @DisplayName("GET por idCuenta → FORBIDDEN")
+        void getPorCuenta() {
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/categoria-producto?idCuenta=" + cat.getCuentaId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .build(),
+                Void.class);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            mockServer.verify();
+
+        }
+
+        @Test @DisplayName("POST crearCategoria → FORBIDDEN")
+        void crearCategoria() {
+            CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
+            entrada.setNombre("NoPermitida");
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/categoria-producto?idCuenta=" + cat.getCuentaId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            mockServer.verify();
+        }
+
+        @Test @DisplayName("PUT actualizarCategoria → FORBIDDEN")
+        void actualizarCategoria() {
+            CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
+            entrada.setNombre("IntentoEditar");
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.put(endpoint(port, "/categoria-producto/" + cat.getId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            mockServer.verify();
+        }
+
+        @Test @DisplayName("DELETE eliminarCategoria → FORBIDDEN")
+        void eliminarCategoria() {
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.delete(endpoint(port, "/categoria-producto/" + cat.getId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .build(),
+                Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            mockServer.verify();
+        }
     }
 }
