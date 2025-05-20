@@ -39,7 +39,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.reposi
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionRepository;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -91,7 +91,7 @@ class ProductoApplicationTests {
             .header("Authorization", "Bearer " + JWT_ADMIN)
             .build();
     }
-
+    
 
     @BeforeEach
     void init(){
