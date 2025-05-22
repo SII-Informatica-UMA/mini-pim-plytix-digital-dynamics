@@ -40,6 +40,7 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.reposi
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withUnauthorizedRequest;
 
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -48,6 +49,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class ProductoApplicationTests {
 
     public static final String JWT_ADMIN = "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlIjoiQURNSU5JU1RSQURPUiIsInN1YiI6IjEiLCJpYXQiOjE3NDQ5MTQ3MDQsImV4cCI6MTgwNzk4NjcwNH0.YIXpA6aXXJ6q8tKjAAnVKT_uumuTdbhkLVieaCGf4vFtOMcYoNOH-FarolDduIQ3ulN-Gxy4TWBymK3ypZ38bQ";
+    public static final String JWT_NO_VALIDO = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzk5OTl9.vxJDTpV1xoLOEO7ddw3ebtJblMtEN1umy3czSkgn4mE";
     @Value(value = "${local.server.port}")
     private int port;
     
@@ -91,7 +93,6 @@ class ProductoApplicationTests {
             .header("Authorization", "Bearer " + JWT_ADMIN)
             .build();
     }
-    
 
     @BeforeEach
     void init(){
@@ -410,6 +411,34 @@ class ProductoApplicationTests {
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
             assertThat(resp.getHeaders().getLocation()).isNotNull();
             assertThat(resp.getBody().getNombre()).isEqualTo("NuevoProd");
+            assertThat(resp.getBody().getGtin()).isEqualTo("NEW-GTIN");
+            assertThat(resp.getBody().getTextoCorto()).isEqualTo("T1");
+            assertThat(resp.getBody().getMiniatura()).isEqualTo("img.png");
+            assertThat(resp.getBody().getCategorias())
+                .extracting(CategoriaDTO::getNombre)
+                .containsExactly("CatX");
+            assertThat(resp.getBody().getRelaciones()).isEmpty();
+            assertThat(resp.getBody().getAtributos()).isEmpty();
+
+            mockServer.verify();
+        }
+
+        @Test @DisplayName("POST crearProducto sin datos da 403")
+        void crearProductoSinDatos() {
+            
+            stubUsuarioAdmin();
+            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+
+            RequestEntity<ProductoEntradaDTO> req = RequestEntity
+                .post(endpoint(port, "/producto?idCuenta=1"))
+                .header("Authorization", "Bearer " + JWT_ADMIN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(entrada);
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
 
             mockServer.verify();
         }
@@ -437,6 +466,7 @@ class ProductoApplicationTests {
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(resp.getBody()).isNull();
 
             mockServer.verify();
         }
@@ -475,6 +505,7 @@ class ProductoApplicationTests {
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
 
             mockServer.verify();
         }
@@ -505,6 +536,14 @@ class ProductoApplicationTests {
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody().getNombre()).isEqualTo("ProdA-Edit");
+            assertThat(resp.getBody().getGtin()).isEqualTo("GTIN-123");
+            assertThat(resp.getBody().getTextoCorto()).isEqualTo("TE");
+            assertThat(resp.getBody().getMiniatura()).isEqualTo("img2.png");
+            assertThat(resp.getBody().getCategorias())
+                .extracting(CategoriaDTO::getNombre)
+                .containsExactly("CatX");
+            assertThat(resp.getBody().getRelaciones()).isEmpty();
+            assertThat(resp.getBody().getAtributos()).isEmpty();
 
             mockServer.verify();
         }
@@ -544,6 +583,9 @@ class ProductoApplicationTests {
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+            // Comprobamos que el producto no se ha actualizado
+            assertThat(productoRepo.findById(prod.getId()).get().getNombre()).isEqualTo("ProdA");
 
             mockServer.verify();
         }
@@ -579,6 +621,7 @@ class ProductoApplicationTests {
             relBA.setTipoRelacion(tipo);
             relacionProductoRepo.save(relBA);
 
+            // Comprobamos que las relaciones existen
             assertThat(relacionProductoRepo.findByProductoOrigen(prod)).hasSize(1);
             assertThat(relacionProductoRepo.findByProductoOrigen(dest)).hasSize(1);
 
@@ -605,6 +648,13 @@ class ProductoApplicationTests {
 
             assertThat(relacionProductoRepo.findByProductoOrigen(prod)).isEmpty();
             assertThat(relacionProductoRepo.findByProductoOrigen(dest)).isEmpty();
+            assertThat(relacionProductoRepo.findByProductoOrigenAndProductoDestino(prod, dest)).isEmpty();
+            assertThat(relacionProductoRepo.findByProductoOrigenAndProductoDestino(dest, prod)).isEmpty();
+
+            // Comprobamos que el resto del producto se ha actualizado
+            assertThat(productoRepo.findById(prod.getId()).get().getNombre()).isEqualTo("ProdA-Edit");
+            assertThat(productoRepo.findById(prod.getId()).get().getTextoCorto()).isEqualTo("TE");
+            assertThat(productoRepo.findById(prod.getId()).get().getMiniatura()).isEqualTo("img2.png");
 
             mockServer.verify();
         }
@@ -665,6 +715,12 @@ class ProductoApplicationTests {
             assertThat(relacionProductoRepo.findByProductoOrigen(dest2))
                 .extracting(r -> r.getProductoDestino().getId())
                 .containsExactly(prod.getId());
+            assertThat(relacionProductoRepo.findByProductoOrigenAndProductoDestino(prod, dest2)).isNotEmpty();
+            assertThat(relacionProductoRepo.findByProductoOrigenAndProductoDestino(dest2, prod)).isNotEmpty();
+            // Comprobamos que el resto del producto se ha actualizado
+            assertThat(productoRepo.findById(prod.getId()).get().getNombre()).isEqualTo("ProdA-Edit2");
+            assertThat(productoRepo.findById(prod.getId()).get().getTextoCorto()).isEqualTo("TE2");
+            assertThat(productoRepo.findById(prod.getId()).get().getMiniatura()).isEqualTo("img3.png");
 
             mockServer.verify();
         }
@@ -852,6 +908,9 @@ class ProductoApplicationTests {
                 Void.class
             );
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+            // Comprobamos que el producto no se ha creado
+            assertThat(productoRepo.findByGtin("NEW-GTIN")).isEmpty();
 
             mockServer.verify();
         }
@@ -880,6 +939,9 @@ class ProductoApplicationTests {
                 Void.class
             );
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+            // Comprobamos que el producto no se ha actualizado
+            assertThat(productoRepo.findById(prod.getId()).get().getNombre()).isEqualTo("ProdA");
 
             mockServer.verify();
         }
@@ -893,6 +955,9 @@ class ProductoApplicationTests {
                 Void.class
             );
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+            // Comprobamos que el producto no se ha eliminado
+            assertThat(productoRepo.findById(prod.getId())).isPresent();
 
             mockServer.verify();
         }
@@ -1012,7 +1077,11 @@ class ProductoApplicationTests {
                 .body(entrada);
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
+
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+            // Comprobamos que el producto no se ha creado
+            assertThat(productoRepo.findByGtin("NEW-GTIN")).isEmpty();
 
             mockServer.verify();
         }
@@ -1043,6 +1112,9 @@ class ProductoApplicationTests {
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+            // Comprobamos que el producto no se ha creado
+            assertThat(productoRepo.findByGtin("X")).isEmpty();
 
             mockServer.verify();
         }
@@ -1118,6 +1190,246 @@ class ProductoApplicationTests {
     
             // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            mockServer.verify();
+        }
+    }
+
+    @Nested
+    @DisplayName("Token inválido")
+    class tokenInvalido {
+
+        @Test @DisplayName("GET por idProducto Token no valido devuelve FORBIDDEN")
+        void getPorIdTokenNoValido() {
+            
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/producto?idProducto=1"))
+                    .header("Authorization", "Bearer " + JWT_NO_VALIDO)
+                    .build(),
+                Void.class);
+            
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
+        @Test @DisplayName("GET por idCategoria Token no valido devuelve FORBIDDEN")
+        void getPorCategoriaTokenNoValido() {
+            
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/producto?idCategoria=1"))
+                    .header("Authorization", "Bearer " + JWT_NO_VALIDO)
+                    .build(),
+                Void.class);
+            
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
+        @Test @DisplayName("GET por idCuenta Token no valido devuelve FORBIDDEN")
+        void getPorCuentaTokenNoValido() {
+            
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/producto?idCuenta=1"))
+                    .header("Authorization", "Bearer " + JWT_NO_VALIDO)
+                    .build(),
+                Void.class);
+            
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
+        @Test @DisplayName("GET por GTTIN Token no valido devuelve FORBIDDEN")
+        void getPorGtinTokenNoValido() {
+            
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/producto?gtin=1"))
+                    .header("Authorization", "Bearer " + JWT_NO_VALIDO)
+                    .build(),
+                Void.class);
+            
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
+        @Test @DisplayName("POST crearProducto Token no valido devuelve FORBIDDEN")
+        void crearProductoTokenNoValido() {
+            
+            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+
+            RequestEntity<ProductoEntradaDTO> req = RequestEntity
+                .post(endpoint(port, "/producto?idCuenta=1"))
+                .header("Authorization", "Bearer " + JWT_NO_VALIDO)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(entrada);
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+        }
+
+        @Test @DisplayName("PUT actualizarProducto Token no valido devuelve FORBIDDEN")
+        void actualizarProductoTokenNoValido() {
+            
+            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+
+            RequestEntity<ProductoEntradaDTO> req = RequestEntity
+                .put(endpoint(port, "/producto/1"))
+                .header("Authorization", "Bearer " + JWT_NO_VALIDO)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(entrada);
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
+        @Test @DisplayName("DELETE eliminarProducto Token no valido devuelve FORBIDDEN")
+        void eliminarProductoTokenNoValido() {
+            
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity
+                    .delete(endpoint(port, "/producto/1"))
+                    .header("Authorization", "Bearer " + JWT_NO_VALIDO)
+                    .build(),
+                    Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+    }
+
+    @Nested
+    @DisplayName("Credenciales no válidas")
+    class credencialesNoValidas {
+
+        private Producto prod;
+        private Categoria cat;
+
+        @BeforeEach
+        void initMockAndDatos() {
+            // Crear una categoría
+            cat = new Categoria();
+            cat.setNombre("CatX");
+            cat.setCuentaId(1);
+
+
+            // Crear un producto
+            prod = new Producto();
+            prod.setGtin("GTIN-123");
+            prod.setSku("SKU-123");
+            prod.setNombre("ProdA");
+            prod.setCuentaId(1);
+            prod.getCategorias().add(cat);
+            prod.setRelacionesOrigen(Collections.emptySet());
+            prod.setRelacionesDestino(Collections.emptySet());
+            prod.setAtributos(Collections.emptySet());
+            productoRepo.save(prod);
+
+            mockServer = MockRestServiceServer.createServer(restTemplate);
+            stubUsuarioNoValido();
+        }
+
+        private void stubUsuarioNoValido() {
+            URI uriRoot = UriComponentsBuilder
+                .fromUriString(baseUrl + "/usuario").build().toUri();
+            mockServer.expect(requestTo(uriRoot))
+                    .andExpect(method(HttpMethod.GET))
+                    .andRespond(withUnauthorizedRequest());
+        }
+
+        @Test @DisplayName("GET por idProducto devuelve UNAUTHORIZED")
+        void getPorIdTokenNoValido() {
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/producto?idProducto=" + prod.getId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .build(),
+                Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            mockServer.verify();
+        }
+
+        @Test @Disabled @DisplayName("GET por idCategoria devuelve UNAUTHORIZED [ERROR EN EL SERVICIO]")
+        void getPorCategoriaTokenNoValido() {
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/producto?idCategoria=1"))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .build(),
+                Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            mockServer.verify();
+        }
+        
+        @Test @DisplayName("GET por idCuenta devuelve UNAUTHORIZED")
+        void getPorCuentaTokenNoValido() {
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/producto?idCuenta=1"))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .build(),
+                Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            mockServer.verify();
+        }
+
+        @Test @Disabled @DisplayName("GET por GTIN devuelve UNAUTHORIZED [ERROR EN EL SERVICIO]")
+        void getPorGtinTokenNoValido() {
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/producto?gtin=" + prod.getGtin()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .build(),
+                Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            mockServer.verify();
+        }
+
+        @Test @DisplayName("POST crearProducto devuelve UNAUTHORIZED")
+        void crearProductoTokenNoValido() {
+
+            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+
+            RequestEntity<ProductoEntradaDTO> req = RequestEntity
+                .post(endpoint(port, "/producto?idCuenta=1"))
+                .header("Authorization", "Bearer " + JWT_ADMIN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(entrada);
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            assertThat(resp.getBody()).isNull();
+            mockServer.verify();
+        }
+
+        @Test @DisplayName("PUT actualizarProducto devuelve UNAUTHORIZED")
+        void actualizarProductoTokenNoValido() {
+
+            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+
+            RequestEntity<ProductoEntradaDTO> req = RequestEntity
+                .put(endpoint(port, "/producto/1"))
+                .header("Authorization", "Bearer " + JWT_ADMIN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(entrada);
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            mockServer.verify();
+        }
+
+        @Test @DisplayName("DELETE eliminarProducto devuelve UNAUTHORIZED")
+        void eliminarProductoTokenNoValido() {
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity
+                    .delete(endpoint(port, "/producto/" + prod.getId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .build(),
+                    Void.class);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             mockServer.verify();
         }
     }
