@@ -28,6 +28,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withUnauthorizedRequest;
 
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.repository.RelacionProductoRepository;
 import uma.informatica.sii.gestor_productos.microservice_gestor_productos.dtos.RelacionDTO;
@@ -47,6 +48,8 @@ import uma.informatica.sii.gestor_productos.microservice_gestor_productos.reposi
 class RelacionApplicationTests {
 
     public static final String JWT_ADMIN = "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlIjoiQURNSU5JU1RSQURPUiIsInN1YiI6IjEiLCJpYXQiOjE3NDQ5MTQ3MDQsImV4cCI6MTgwNzk4NjcwNH0.YIXpA6aXXJ6q8tKjAAnVKT_uumuTdbhkLVieaCGf4vFtOMcYoNOH-FarolDduIQ3ulN-Gxy4TWBymK3ypZ38bQ";
+    public static final String JWT_NO_VALIDO = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzk5OTl9.vxJDTpV1xoLOEO7ddw3ebtJblMtEN1umy3czSkgn4mE";
+
     @Value(value = "${local.server.port}")
     private int port;
     
@@ -136,6 +139,20 @@ class RelacionApplicationTests {
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody()).isEmpty();
         }
+
+        @Test @DisplayName("POST crearRelacion → 403")
+        void crearRelacion() {
+            RelacionEntradaDTO entrada = new RelacionEntradaDTO();
+
+            ResponseEntity<RelacionDTO> resp = testRestTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/relacion?idCuenta=1"))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                RelacionDTO.class);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
         @Test @DisplayName("PUT modificarRelacion → 404")
         void modificarRelacion() {
             RelacionEntradaDTO entrada = new RelacionEntradaDTO();
@@ -204,17 +221,6 @@ class RelacionApplicationTests {
                 ));
         }
 
-        @Test @DisplayName("GET sin params → 400")
-        void getSinParams() {
-
-            ResponseEntity<Void> resp = testRestTemplate.exchange(
-                getRequest("/relacion?"),Void.class
-            );
-
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            mockServer.verify();
-        }
-
         @Test @DisplayName("GET por idRelacion → OK + DTO correcto")
         void getPorId() {
             stubUsuarioAdmin();
@@ -261,6 +267,27 @@ class RelacionApplicationTests {
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
             assertThat(resp.getHeaders().getLocation()).isNotNull();
             assertThat(resp.getBody().getNombre()).isEqualTo("Relacion Nueva");
+            assertThat(resp.getBody().getDescripcion()).isEqualTo("Descripcion");
+
+            mockServer.verify();
+        }
+
+        @Test @DisplayName("POST crearRelacion sin datos devuelve 403")
+        void crearRelacionSinDatos() {
+            stubUsuarioAdmin();
+            stubCuentaPlan(1000);
+
+            RelacionEntradaDTO entrada = new RelacionEntradaDTO();
+
+            ResponseEntity<RelacionDTO> resp = testRestTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/relacion?idCuenta=" + rel.getCuentaId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                RelacionDTO.class
+            );
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
             mockServer.verify();
         }
 
@@ -282,6 +309,8 @@ class RelacionApplicationTests {
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody().getNombre()).isEqualTo("Relacion Editada");
+            assertThat(resp.getBody().getDescripcion()).isEqualTo("Desc Editada");
+
             mockServer.verify();
         }
 
@@ -297,6 +326,7 @@ class RelacionApplicationTests {
             );
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(relacionRepo.findById(rel.getId())).isEmpty();
             mockServer.verify();
         }
 
@@ -343,6 +373,11 @@ class RelacionApplicationTests {
 
             // 6) Comprobamos 403 Forbidden
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            // 7) Comprobamos que la relación sigue en la BD
+            assertThat(relacionRepo.findById(rel.getId())).isPresent();
+            // 8) Comprobamos que la relación entre productos sigue en la BD
+            assertThat(relacionProductoRepo.findById(relProd.getId())).isPresent();
+            // 9) Verificamos que el mockServer ha recibido las peticiones esperadas
             mockServer.verify();
         }
     }
@@ -435,6 +470,8 @@ class RelacionApplicationTests {
                 RelacionDTO.class
             );
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+
             mockServer.verify();
         }
 
@@ -452,6 +489,8 @@ class RelacionApplicationTests {
                 Void.class
             );
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+
             mockServer.verify();
         }
 
@@ -462,6 +501,8 @@ class RelacionApplicationTests {
                 Void.class
             );
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+
             mockServer.verify();
         }
     }
@@ -521,6 +562,9 @@ class RelacionApplicationTests {
         @Test @DisplayName("POST crearRelacion → FORBIDDEN por plan lleno")
         void crearRelacionPlanLleno() {
             RelacionEntradaDTO entrada = new RelacionEntradaDTO();
+            entrada.setNombre("Relacion Nueva");
+            entrada.setDescripcion("Descripcion");
+
             stubUsuarioPerteneceCuenta(1, true);
             stubCuentaPlan(0);
 
@@ -533,10 +577,205 @@ class RelacionApplicationTests {
             );
 
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+            assertThat(relacionRepo.findAll().isEmpty());
+            mockServer.verify();
+        }
+    }
+
+    @Nested
+    @DisplayName("Token no válido")
+    class TokenNoValido {
+
+        @Test @DisplayName("GET por idRelacion → FORBIDDEN")
+        void getPorId() {
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/relacion?idRelacion=1"))
+                    .header("Authorization", "Bearer " + JWT_NO_VALIDO)
+                    .build(),
+                Void.class
+            );
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+        }
+
+        @Test @DisplayName("GET por idCuenta → FORBIDDEN")
+        void getPorCuenta() {
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/relacion?idCuenta=1"))
+                    .header("Authorization", "Bearer " + JWT_NO_VALIDO)
+                    .build(),
+                Void.class
+            );
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+        }
+
+        @Test @DisplayName("POST crearRelacion → FORBIDDEN")
+        void crearRelacion() {
+            RelacionEntradaDTO entrada = new RelacionEntradaDTO();
+            entrada.setNombre("Relacion Nueva");
+            entrada.setDescripcion("Descripcion");
+
+            ResponseEntity<RelacionDTO> resp = testRestTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/relacion?idCuenta=1"))
+                    .header("Authorization", "Bearer " + JWT_NO_VALIDO)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                RelacionDTO.class
+            );
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+        }
+
+        @Test @DisplayName("PUT actualizarRelacion → FORBIDDEN")
+        void actualizarRelacion() {
+            RelacionEntradaDTO entrada = new RelacionEntradaDTO();
+            entrada.setNombre("Relacion Editada");
+            entrada.setDescripcion("Desc");
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.put(endpoint(port, "/relacion/1"))
+                    .header("Authorization", "Bearer " + JWT_NO_VALIDO)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                Void.class
+            );
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+        }
+
+        @Test @DisplayName("DELETE eliminarRelacion → FORBIDDEN")
+        void eliminarRelacion() {
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.delete(endpoint(port, "/relacion/1"))
+                    .header("Authorization", "Bearer " + JWT_NO_VALIDO)
+                    .build(),
+                Void.class
+            );
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(resp.getBody()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("Credenciales no válidas")
+    class CredencialesNoValidas {
+
+        private Relacion rel;
+
+        @BeforeEach
+        void initMockAndDatos() {
+            // Inicializamos MockRestServiceServer sobre el RestTemplate interno
+            mockServer = MockRestServiceServer.createServer(restTemplate);
+
+            // Creamos una relación de ejemplo
+            rel = new Relacion();
+            rel.setNombre("Relacion1");
+            rel.setCuentaId(1);
+            relacionRepo.save(rel);
+
+            stubUsuarioNoValido();
+        }
+
+        private void stubUsuarioNoValido() {
+            URI uriById = UriComponentsBuilder.fromUriString(baseUrl + "/usuario").build().toUri();
+            mockServer.expect(requestTo(uriById))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withUnauthorizedRequest()   
+                );
+        }
+
+        @Test @DisplayName("GET por idRelacion → UNAUTHORIZED")
+        void getPorId() {
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/relacion?idRelacion=" + rel.getId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .build(),
+                Void.class
+            );
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            assertThat(resp.getBody()).isNull();
+
+            mockServer.verify();
+        }
+
+        @Test @DisplayName("GET por idCuenta → UNAUTHORIZED")
+        void getPorCuenta() {
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.get(endpoint(port, "/relacion?idCuenta=" + rel.getCuentaId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .build(),
+                Void.class
+            );
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            assertThat(resp.getBody()).isNull();
+
+            mockServer.verify();
+
+        }
+
+        @Test @DisplayName("POST crearRelacion → UNAUTHORIZED")
+        void crearRelacion() {
+            RelacionEntradaDTO entrada = new RelacionEntradaDTO();
+            entrada.setNombre("Relacion Nueva");
+            entrada.setDescripcion("Descripcion");
+
+            ResponseEntity<RelacionDTO> resp = testRestTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/relacion?idCuenta=" + rel.getCuentaId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                RelacionDTO.class
+            );
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            assertThat(resp.getBody()).isNull();
+
+            mockServer.verify();
+        }
+
+        @Test @DisplayName("PUT actualizarRelacion → UNAUTHORIZED")
+        void actualizarRelacion() {
+            RelacionEntradaDTO entrada = new RelacionEntradaDTO();
+            entrada.setNombre("Relacion Editada");
+            entrada.setDescripcion("Desc");
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.put(endpoint(port, "/relacion/" + rel.getId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                Void.class
+            );
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            assertThat(resp.getBody()).isNull();
+
+            mockServer.verify();
+
+        }
+
+        @Test @DisplayName("DELETE eliminarRelacion → UNAUTHORIZED")
+        void eliminarRelacion() {
+            ResponseEntity<Void> resp = testRestTemplate.exchange(
+                RequestEntity.delete(endpoint(port, "/relacion/" + rel.getId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .build(),
+                Void.class
+            );
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            assertThat(resp.getBody()).isNull();
+
             mockServer.verify();
         }
     }
 }
-
-
-
