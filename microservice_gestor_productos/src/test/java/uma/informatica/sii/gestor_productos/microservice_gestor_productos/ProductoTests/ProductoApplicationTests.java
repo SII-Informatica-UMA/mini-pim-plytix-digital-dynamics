@@ -245,7 +245,8 @@ class ProductoApplicationTests {
 
         @Test
         @Disabled
-        @DisplayName("POST crear producto sin idCuenta da 400 [ERROR EN EL SERVICIO]")
+        @DisplayName("POST crear producto sin idCuenta da 400 [ERROR EN EL CONTROLADOR]")
+        // El controlador de POST no tiene Required = True en idCuenta
         void postSinIdCuenta() {
             //Arrange 
             ProductoEntradaDTO dummy = new ProductoEntradaDTO();
@@ -1345,7 +1346,10 @@ class ProductoApplicationTests {
             mockServer.verify();
         }
 
-        @Test @Disabled @DisplayName("GET por idCategoria devuelve UNAUTHORIZED [ERROR EN EL SERVICIO]")
+        @Test 
+        @Disabled 
+        @DisplayName("GET por idCategoria devuelve UNAUTHORIZED [ERROR EN EL SERVICIO]")
+        //No hay ningun CredencialesNoValidasException en el servicio getProductosPorIdCategoria
         void getPorCategoriaTokenNoValido() {
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(
@@ -1371,7 +1375,10 @@ class ProductoApplicationTests {
             mockServer.verify();
         }
 
-        @Test @Disabled @DisplayName("GET por GTIN devuelve UNAUTHORIZED [ERROR EN EL SERVICIO]")
+        @Test 
+        @Disabled 
+        @DisplayName("GET por GTIN devuelve UNAUTHORIZED [ERROR EN EL SERVICIO]")
+        //No hay ningun CredencialesNoValidasException en el servicio getProductosPorGtin
         void getPorGtinTokenNoValido() {
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(
