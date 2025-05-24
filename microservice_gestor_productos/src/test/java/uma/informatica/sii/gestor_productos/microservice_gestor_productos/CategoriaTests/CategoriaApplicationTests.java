@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.net.URI;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -327,7 +326,6 @@ class CategoriaApplicationTests {
 
 
         @Test 
-        @Disabled 
         @DisplayName("POST crearCategoria nombre existente → 403 [ERROR EN EL SERVICIO]")
         // En el servicio se lanza una excepción incorrecta al existir el nombre
         void crearCategoriaNombreExistente() {

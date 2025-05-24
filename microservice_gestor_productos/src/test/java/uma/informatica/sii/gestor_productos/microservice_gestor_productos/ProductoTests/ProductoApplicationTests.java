@@ -5,7 +5,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -44,7 +43,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@DisplayName("Tests de Productos- ")
+@DisplayName("Tests del microservicio de productos -> ")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class ProductoApplicationTests {
 
@@ -244,7 +243,6 @@ class ProductoApplicationTests {
         }
 
         @Test
-        @Disabled
         @DisplayName("POST crear producto sin idCuenta da 400 [ERROR EN EL CONTROLADOR]")
         // El controlador de POST no tiene Required = True en idCuenta
         void postSinIdCuenta() {
@@ -291,6 +289,7 @@ class ProductoApplicationTests {
             mockServer = MockRestServiceServer.createServer(restTemplate);
         }
 
+        // Funciones para mocks
         private void stubUsuarioAdmin() {
             URI uriRoot = UriComponentsBuilder.fromUriString(baseUrl + "/usuario").build().toUri();
             mockServer.expect(ExpectedCount.manyTimes(), requestTo(uriRoot))
@@ -324,13 +323,17 @@ class ProductoApplicationTests {
 
         @Test @DisplayName("GET por idProducto da OK con DTO correcto")
         void getPorId() {
+            
+
             stubUsuarioAdmin();
 
+            // Act
             ResponseEntity<ProductoDTO> resp = testRestTemplate.exchange(
                 getRequest("/producto?idProducto=" + prod.getId()),
                 ProductoDTO.class
             );
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody().getNombre()).isEqualTo("ProdA");
             assertThat(resp.getBody().getGtin()).isEqualTo("GTIN-123");
@@ -343,25 +346,31 @@ class ProductoApplicationTests {
 
         @Test @DisplayName("GET por gtin da OK con DTO correcto")
         void getPorGtin() {
-            // No se valida usuario; si tu endpoint no llama a /usuario para GTIN, no hace falta stub
+            // No se valida usuario
+
+            // Act
             ResponseEntity<ProductoDTO> resp = testRestTemplate.exchange(
                 getRequest("/producto?gtin=" + prod.getGtin()),
                 ProductoDTO.class
             );
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody().getId()).isEqualTo(prod.getId());
         }
 
         @Test @DisplayName("GET por idCuenta devuelve lista con 1 elemento")
         void getPorCuenta() {
+
             stubUsuarioAdmin();
 
+            // Act
             ResponseEntity<Set<ProductoDTO>> resp = testRestTemplate.exchange(
                 getRequest("/producto?idCuenta=1"),
                 new ParameterizedTypeReference<Set<ProductoDTO>>() {}
             );
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody()).hasSize(1);
 
@@ -370,13 +379,16 @@ class ProductoApplicationTests {
 
         @Test @DisplayName("GET por idCategoria devuelve lista con 1 elemento")
         void getPorCategoria() {
+
             stubUsuarioAdmin();
 
+            // Act
             ResponseEntity<Set<ProductoDTO>> resp = testRestTemplate.exchange(
                 getRequest("/producto?idCategoria=" + cat.getId()),
                 new ParameterizedTypeReference<Set<ProductoDTO>>() {}
             );
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody()).hasSize(1);
 
@@ -388,6 +400,7 @@ class ProductoApplicationTests {
             stubUsuarioAdmin();
             stubCuentaPlan(1000);
 
+            // Crear la entrada del POST
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
             entrada.setGtin("NEW-GTIN");
             entrada.setSku("SKU1");
@@ -401,6 +414,7 @@ class ProductoApplicationTests {
             entrada.setAtributos(Collections.emptySet());
             entrada.setRelaciones(Collections.emptySet());
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .post(endpoint(port, "/producto?idCuenta=1"))
                 .header("Authorization", "Bearer " + JWT_ADMIN)
@@ -409,6 +423,7 @@ class ProductoApplicationTests {
 
             ResponseEntity<ProductoDTO> resp = testRestTemplate.exchange(req, ProductoDTO.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
             assertThat(resp.getHeaders().getLocation()).isNotNull();
             assertThat(resp.getBody().getNombre()).isEqualTo("NuevoProd");
@@ -428,8 +443,11 @@ class ProductoApplicationTests {
         void crearProductoSinDatos() {
             
             stubUsuarioAdmin();
+            
+            // Arrange: entrada vacía
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .post(endpoint(port, "/producto?idCuenta=1"))
                 .header("Authorization", "Bearer " + JWT_ADMIN)
@@ -438,6 +456,7 @@ class ProductoApplicationTests {
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
             assertThat(resp.getBody()).isNull();
 
@@ -446,8 +465,10 @@ class ProductoApplicationTests {
 
         @Test @DisplayName("POST crearProducto sin categoría da 404")
         void crearProductoSinCategoria() {
+
             stubUsuarioAdmin();
 
+            // Arrange: entrada sin categoría
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
             entrada.setGtin("NEW-GTIN");
             entrada.setSku("SKU1");
@@ -458,6 +479,7 @@ class ProductoApplicationTests {
             entrada.setAtributos(Collections.emptySet());
             entrada.setRelaciones(Collections.emptySet());
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .post(endpoint(port, "/producto?idCuenta=1"))
                 .header("Authorization", "Bearer " + JWT_ADMIN)
@@ -466,6 +488,7 @@ class ProductoApplicationTests {
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
             assertThat(resp.getBody()).isNull();
 
@@ -474,8 +497,10 @@ class ProductoApplicationTests {
 
         @Test @DisplayName("POST crearProducto con GTIN existente devuelve 403")
         void crearProductoConGtinExistente() {
+
             stubUsuarioAdmin();
 
+            // Arrange: crear un producto con el mismo GTIN
             Producto prod2 = new Producto();
             prod2.setGtin("GTIN-456");
             prod2.setSku("SKU-456");
@@ -497,6 +522,7 @@ class ProductoApplicationTests {
             entrada.setAtributos(Collections.emptySet());
             entrada.setRelaciones(Collections.emptySet());
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .post(endpoint(port, "/producto?idCuenta=1"))
                 .header("Authorization", "Bearer " + JWT_ADMIN)
@@ -505,6 +531,7 @@ class ProductoApplicationTests {
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
             assertThat(resp.getBody()).isNull();
 
@@ -513,8 +540,10 @@ class ProductoApplicationTests {
 
         @Test @DisplayName("PUT actualizarProducto da 200 con los cambios aplicados")
         void actualizarProducto() {
+
             stubUsuarioAdmin();
 
+            // Crear la entrada del PUT
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
             entrada.setGtin("GTIN-123");
             entrada.setSku("SKU-123");
@@ -527,6 +556,7 @@ class ProductoApplicationTests {
             entrada.setCategorias(Collections.singleton(catDto));
             entrada.setAtributos(Collections.emptySet());
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .put(endpoint(port, "/producto/" + prod.getId()))
                 .header("Authorization", "Bearer " + JWT_ADMIN)
@@ -535,6 +565,7 @@ class ProductoApplicationTests {
 
             ResponseEntity<ProductoDTO> resp = testRestTemplate.exchange(req, ProductoDTO.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody().getNombre()).isEqualTo("ProdA-Edit");
             assertThat(resp.getBody().getGtin()).isEqualTo("GTIN-123");
@@ -551,8 +582,10 @@ class ProductoApplicationTests {
 
         @Test @DisplayName("PUT actualizarProducto con GTIN existente devuelve 403")
         void actualizarProductoConGtinExistente() {
+
             stubUsuarioAdmin();
 
+            // Arrange: crear un segundo producto con el mismo GTIN
             Producto prod2 = new Producto();
             prod2.setGtin("GTIN-456");
             prod2.setSku("SKU-456");
@@ -575,6 +608,7 @@ class ProductoApplicationTests {
             entrada.setCategorias(Collections.singleton(catDto));
             entrada.setAtributos(Collections.emptySet());
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .put(endpoint(port, "/producto/" + prod.getId()))
                 .header("Authorization", "Bearer " + JWT_ADMIN)
@@ -583,6 +617,7 @@ class ProductoApplicationTests {
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
             assertThat(resp.getBody()).isNull();
             // Comprobamos que el producto no se ha actualizado
@@ -593,8 +628,10 @@ class ProductoApplicationTests {
 
         @Test @DisplayName("PUT actualizarProducto elimina relaciones obsoletas en ambos sentidos")
         void actualizarProductoEliminarRelaciones() {
+
             stubUsuarioAdmin();
 
+            // Arrange: Creamos un producto destino y una relación entre ambos
             Producto dest = new Producto();
             dest.setGtin("GTIN-999");
             dest.setSku("SKU-999");
@@ -639,14 +676,16 @@ class ProductoApplicationTests {
             entrada.setAtributos(Collections.emptySet());
             entrada.setRelaciones(Collections.emptySet());
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .put(endpoint(port, "/producto/" + prod.getId()))
                 .header("Authorization", "Bearer " + JWT_ADMIN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(entrada);
 
-            testRestTemplate.exchange(req, ProductoDTO.class);
+            ResponseEntity<ProductoDTO> resp = testRestTemplate.exchange(req, ProductoDTO.class);
 
+            // Assert: Comprobamos que las relaciones se han eliminado
             assertThat(relacionProductoRepo.findByProductoOrigen(prod)).isEmpty();
             assertThat(relacionProductoRepo.findByProductoOrigen(dest)).isEmpty();
             assertThat(relacionProductoRepo.findByProductoOrigenAndProductoDestino(prod, dest)).isEmpty();
@@ -657,13 +696,19 @@ class ProductoApplicationTests {
             assertThat(productoRepo.findById(prod.getId()).get().getTextoCorto()).isEqualTo("TE");
             assertThat(productoRepo.findById(prod.getId()).get().getMiniatura()).isEqualTo("img2.png");
 
+            // Verificamos que la respuesta es correcta
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(resp.getBody().getNombre()).isEqualTo("ProdA-Edit");
+            assertThat(resp.getBody().getRelaciones()).isEmpty();
+
             mockServer.verify();
         }
 
         @Test @DisplayName("PUT actualizarProducto añade nuevas relaciones en ambos sentidos")
         void actualizarProductoAgregarRelaciones() {
-            stubUsuarioAdmin();
 
+            stubUsuarioAdmin();
+            // Arrange: Creamos un producto destino y una relación entre ambos
             Producto dest2 = new Producto();
             dest2.setGtin("GTIN-888");
             dest2.setSku("SKU-888");
@@ -702,14 +747,16 @@ class ProductoApplicationTests {
             relDto.setRelacion(rel);
             entrada.setRelaciones(Collections.singleton(relDto));
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .put(endpoint(port, "/producto/" + prod.getId()))
                 .header("Authorization", "Bearer " + JWT_ADMIN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(entrada);
 
-            testRestTemplate.exchange(req, ProductoDTO.class);
+            ResponseEntity<ProductoDTO> resp = testRestTemplate.exchange(req, ProductoDTO.class);
 
+            // Assert
             assertThat(relacionProductoRepo.findByProductoOrigen(prod))
                 .extracting(r -> r.getProductoDestino().getId())
                 .containsExactly(dest2.getId());
@@ -718,23 +765,32 @@ class ProductoApplicationTests {
                 .containsExactly(prod.getId());
             assertThat(relacionProductoRepo.findByProductoOrigenAndProductoDestino(prod, dest2)).isNotEmpty();
             assertThat(relacionProductoRepo.findByProductoOrigenAndProductoDestino(dest2, prod)).isNotEmpty();
+
             // Comprobamos que el resto del producto se ha actualizado
             assertThat(productoRepo.findById(prod.getId()).get().getNombre()).isEqualTo("ProdA-Edit2");
             assertThat(productoRepo.findById(prod.getId()).get().getTextoCorto()).isEqualTo("TE2");
             assertThat(productoRepo.findById(prod.getId()).get().getMiniatura()).isEqualTo("img3.png");
+
+            // Verificamos que la respuesta es correcta
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(resp.getBody().getNombre()).isEqualTo("ProdA-Edit2");
+            assertThat(resp.getBody().getRelaciones()).hasSize(2);
 
             mockServer.verify();
         }
 
         @Test @DisplayName("DELETE eliminarProducto devuelve 200 y sin entidad en BD")
         void eliminarProducto() {
+
             stubUsuarioAdmin();
 
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 deleteRequest("/producto/" + prod.getId()),
                 Void.class
             );
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(productoRepo.findById(prod.getId())).isEmpty();
 
@@ -745,12 +801,14 @@ class ProductoApplicationTests {
     
 
     @Nested
-    @DisplayName("usuario no pertenece a cuenta")
+    @DisplayName("Cuando el usuario no pertenece a la cuenta del producto")
     class noPerteneceCuenta {
 
         private Categoria cat;
         private Producto prod;
 
+        // Mock del servidor para simular el servicio de usuarios
+        // Arrange general para los tests cuando el usuario no pertenece a la cuenta
         @BeforeEach
         void initMockAndDatos() {
             cat = new Categoria();
@@ -794,28 +852,6 @@ class ProductoApplicationTests {
                     ));
         }
 
-        private void stubUsuarioAdmin() {
-            URI uriRoot = UriComponentsBuilder
-                .fromUriString(baseUrl + "/usuario").build().toUri();
-            mockServer.expect(ExpectedCount.manyTimes(), requestTo(uriRoot))
-                    .andExpect(method(HttpMethod.GET))
-                    .andRespond(withSuccess(
-                        "[{\"id\":1,\"role\":\"ADMINISTRADOR\"}]",
-                        MediaType.APPLICATION_JSON
-                    ));
-
-            URI uriById = UriComponentsBuilder
-                .fromUriString(baseUrl + "/usuario")
-                .queryParam("id", 1)
-                .build().toUri();
-            mockServer.expect(ExpectedCount.manyTimes(), requestTo(uriById))
-                    .andExpect(method(HttpMethod.GET))
-                    .andRespond(withSuccess(
-                        "[{\"id\":1,\"role\":\"ADMINISTRADOR\"}]",
-                        MediaType.APPLICATION_JSON
-                    ));
-        }
-
         private void stubUsuarioPerteneceCuenta(int cuentaId, boolean pertenece) {
             URI uri = UriComponentsBuilder
                 .fromUriString(baseUrl + "/cuenta/" + cuentaId + "/usuarios")
@@ -832,10 +868,13 @@ class ProductoApplicationTests {
         void getPorId() {
             stubUsuarioPerteneceCuenta(prod.getCuentaId(), false);
 
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 getRequest("/producto?idProducto=" + prod.getId()),
                 Void.class
             );
+
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 
             mockServer.verify();
@@ -845,10 +884,13 @@ class ProductoApplicationTests {
         void getPorCategoriaDevuelveForbidden() {
             stubUsuarioPerteneceCuenta(cat.getCuentaId(), false);
 
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 getRequest("/producto?idCategoria=" + cat.getId()),
                 Void.class
             );
+
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 
             mockServer.verify();
@@ -859,26 +901,31 @@ class ProductoApplicationTests {
             // comprobamos con otra cuenta
             stubUsuarioPerteneceCuenta(2, false);
 
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 getRequest("/producto?idCuenta=2"),
                 Void.class
             );
+
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 
             mockServer.verify();
         }
 
-        @Test @DisplayName("GET por idCuenta inexistente devuelve []")
-        void getPorCuentaInexistenteDevuelve404() {
+        @Test @DisplayName("GET por idCuenta inexistente devuelve 403")
+        void getPorCuentaInexistenteDevuelve403() {
             // restauramos el mock para ADMIN
-            mockServer.reset();
-            stubUsuarioAdmin();
+            stubUsuarioPerteneceCuenta(999, false);
 
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 getRequest("/producto?idCuenta=999"),
                 Void.class
             );
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+            // Assert
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
             assertThat(resp.getBody()).isNull();
 
             mockServer.verify();
@@ -888,6 +935,7 @@ class ProductoApplicationTests {
         void crearProductoDevuelveForbidden() {
             stubUsuarioPerteneceCuenta(cat.getCuentaId(), false);
 
+            // Creamos la entrada del POST
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
             entrada.setGtin("NEW-GTIN");
             entrada.setSku("SKU1");
@@ -901,6 +949,7 @@ class ProductoApplicationTests {
             entrada.setAtributos(Collections.emptySet());
             entrada.setRelaciones(Collections.emptySet());
 
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.post(endpoint(port, "/producto?idCuenta=" + cat.getCuentaId()))
                     .header("Authorization", "Bearer " + JWT_ADMIN)
@@ -908,6 +957,8 @@ class ProductoApplicationTests {
                     .body(entrada),
                 Void.class
             );
+
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
             assertThat(resp.getBody()).isNull();
             // Comprobamos que el producto no se ha creado
@@ -920,6 +971,7 @@ class ProductoApplicationTests {
         void actualizarProductoDevuelveForbidden() {
             stubUsuarioPerteneceCuenta(prod.getCuentaId(), false);
 
+            // Creamos la entrada del PUT
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
             entrada.setGtin(prod.getGtin());
             entrada.setSku(prod.getSku());
@@ -932,6 +984,7 @@ class ProductoApplicationTests {
             entrada.setCategorias(Set.of(catDto));
             entrada.setAtributos(Collections.emptySet());
 
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.put(endpoint(port, "/producto/" + prod.getId()))
                     .header("Authorization", "Bearer " + JWT_ADMIN)
@@ -939,6 +992,8 @@ class ProductoApplicationTests {
                     .body(entrada),
                 Void.class
             );
+
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
             assertThat(resp.getBody()).isNull();
             // Comprobamos que el producto no se ha actualizado
@@ -951,10 +1006,13 @@ class ProductoApplicationTests {
         void eliminarProductoDevuelveForbidden() {
             stubUsuarioPerteneceCuenta(prod.getCuentaId(), false);
 
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 deleteRequest("/producto/" + prod.getId()),
                 Void.class
             );
+
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
             assertThat(resp.getBody()).isNull();
             // Comprobamos que el producto no se ha eliminado
@@ -966,11 +1024,13 @@ class ProductoApplicationTests {
 
     
     @Nested
-    @DisplayName("Usuario no puede crear producto")
+    @DisplayName("Cuando el usuario no puede crear producto")
     class UsuarioNoPuedeCrearProducto {
 
         private Categoria cat;
 
+        // Mock del servidor para simular el servicio de usuarios
+        // Arrange general para los tests cuando el usuario no puede crear producto
         @BeforeEach
         void initMockAndDatos() {
             cat = new Categoria();
@@ -1016,7 +1076,7 @@ class ProductoApplicationTests {
                     ));
         }
 
-        private void stubUsuarioByIdEmpty() {
+        private void stubUsuarioEmpty() {
             // GET /usuario?id=1 → []
             URI byId = UriComponentsBuilder
                 .fromUriString(baseUrl + "/usuario")
@@ -1058,6 +1118,7 @@ class ProductoApplicationTests {
             // …pero su plan ya no admite productos
             stubCuentaPlan(0);
 
+            // Creamos la entrada del POST
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
             entrada.setGtin("NEW-GTIN");
             entrada.setSku("SKU1");
@@ -1071,6 +1132,7 @@ class ProductoApplicationTests {
             entrada.setAtributos(Collections.emptySet());
             entrada.setRelaciones(Collections.emptySet());
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .post(endpoint(port, "/producto?idCuenta=" + cat.getCuentaId()))
                 .header("Authorization", "Bearer " + JWT_ADMIN)
@@ -1079,6 +1141,7 @@ class ProductoApplicationTests {
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
             assertThat(resp.getBody()).isNull();
             // Comprobamos que el producto no se ha creado
@@ -1089,11 +1152,13 @@ class ProductoApplicationTests {
 
         @Test @DisplayName("POST devuelve 403 si getUsuario(id) devuelve vacío")
         void crearProductoSinUsuarioValidoDa403() {
-            // Queremos simular que GET /usuario?id=1 retorna []
+            // Reinicializamos el mock para simular que el usuario no existe
             mockServer.reset();
+            // Simular que GET /usuario?id=1 retorna []
             stubUsuarioAdmin();
-            stubUsuarioByIdEmpty();
+            stubUsuarioEmpty();
 
+            // Creamos la entrada del POST
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
             entrada.setGtin("X");
             entrada.setSku("Y");
@@ -1105,6 +1170,7 @@ class ProductoApplicationTests {
             entrada.setAtributos(Collections.emptySet());
             entrada.setRelaciones(Collections.emptySet());
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .post(endpoint(port, "/producto?idCuenta=" + cat.getCuentaId()))
                 .header("Authorization", "Bearer " + JWT_ADMIN)
@@ -1112,6 +1178,8 @@ class ProductoApplicationTests {
                 .body(entrada);
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
+
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
             assertThat(resp.getBody()).isNull();
             // Comprobamos que el producto no se ha creado
@@ -1123,9 +1191,10 @@ class ProductoApplicationTests {
 
 
     @Nested
-    @DisplayName("los productos no son accesibles por el usuario")
+    @DisplayName("Cuando los productos no son accesibles por el usuario")
     class productoNoAccesible{
-    
+        
+        // Mock del servidor para simular el servicio de usuarios
         @BeforeEach
         void initMockAndDatos() {
             mockServer = MockRestServiceServer.createServer(restTemplate);
@@ -1183,7 +1252,7 @@ class ProductoApplicationTests {
             stubUsuarioPerteneceCuenta(1, true);
             stubUsuarioPerteneceCuenta(1, false);
 
-            // Act: llamada a /producto?idCategoria=cat.getId()
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 getRequest("/producto?idCategoria=" + cat.getId()),
                 Void.class
@@ -1201,57 +1270,75 @@ class ProductoApplicationTests {
 
         @Test @DisplayName("GET por idProducto Token no valido devuelve FORBIDDEN")
         void getPorIdTokenNoValido() {
+            // Arrange vacío
             
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/producto?idProducto=1"))
                     .header("Authorization", "Bearer " + JWT_NO_VALIDO)
                     .build(),
                 Void.class);
             
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
 
         @Test @DisplayName("GET por idCategoria Token no valido devuelve FORBIDDEN")
         void getPorCategoriaTokenNoValido() {
+            // Arrange vacío
             
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/producto?idCategoria=1"))
                     .header("Authorization", "Bearer " + JWT_NO_VALIDO)
                     .build(),
                 Void.class);
             
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
 
         @Test @DisplayName("GET por idCuenta Token no valido devuelve FORBIDDEN")
         void getPorCuentaTokenNoValido() {
             
+            // Arrange vacío
+
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/producto?idCuenta=1"))
                     .header("Authorization", "Bearer " + JWT_NO_VALIDO)
                     .build(),
                 Void.class);
             
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
 
         @Test @DisplayName("GET por GTTIN Token no valido devuelve FORBIDDEN")
         void getPorGtinTokenNoValido() {
             
+            // Arrange vacío
+
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/producto?gtin=1"))
                     .header("Authorization", "Bearer " + JWT_NO_VALIDO)
                     .build(),
                 Void.class);
             
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
 
         @Test @DisplayName("POST crearProducto Token no valido devuelve FORBIDDEN")
         void crearProductoTokenNoValido() {
             
+            // Arrange vacío
+
+            // Creamos la entrada del POST
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .post(endpoint(port, "/producto?idCuenta=1"))
                 .header("Authorization", "Bearer " + JWT_NO_VALIDO)
@@ -1260,6 +1347,7 @@ class ProductoApplicationTests {
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
             assertThat(resp.getBody()).isNull();
         }
@@ -1267,8 +1355,11 @@ class ProductoApplicationTests {
         @Test @DisplayName("PUT actualizarProducto Token no valido devuelve FORBIDDEN")
         void actualizarProductoTokenNoValido() {
             
+
+            // Creamos la entrada del PUT
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .put(endpoint(port, "/producto/1"))
                 .header("Authorization", "Bearer " + JWT_NO_VALIDO)
@@ -1277,12 +1368,15 @@ class ProductoApplicationTests {
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
 
         @Test @DisplayName("DELETE eliminarProducto Token no valido devuelve FORBIDDEN")
         void eliminarProductoTokenNoValido() {
-            
+            //Assert vacío
+
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity
                     .delete(endpoint(port, "/producto/1"))
@@ -1290,6 +1384,7 @@ class ProductoApplicationTests {
                     .build(),
                     Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
     }
@@ -1301,6 +1396,8 @@ class ProductoApplicationTests {
         private Producto prod;
         private Categoria cat;
 
+        // Mock del servidor para simular el servicio de usuarios
+        // Arrange general para los tests cuando las credenciales no son válidas
         @BeforeEach
         void initMockAndDatos() {
             // Crear una categoría
@@ -1334,68 +1431,81 @@ class ProductoApplicationTests {
         }
 
         @Test @DisplayName("GET por idProducto devuelve UNAUTHORIZED")
-        void getPorIdTokenNoValido() {
+        void getPorIdCredencialesInvalidas() {
+            // Arrange vacío
 
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/producto?idProducto=" + prod.getId()))
                     .header("Authorization", "Bearer " + JWT_ADMIN)
                     .build(),
                 Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             mockServer.verify();
         }
 
         @Test 
-        @Disabled 
         @DisplayName("GET por idCategoria devuelve UNAUTHORIZED [ERROR EN EL SERVICIO]")
         //No hay ningun CredencialesNoValidasException en el servicio getProductosPorIdCategoria
-        void getPorCategoriaTokenNoValido() {
+        void getPorCategoriaCredencialesInvalidas() {
+            // Arrange vacío
 
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/producto?idCategoria=1"))
                     .header("Authorization", "Bearer " + JWT_ADMIN)
                     .build(),
                 Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             mockServer.verify();
         }
         
         @Test @DisplayName("GET por idCuenta devuelve UNAUTHORIZED")
-        void getPorCuentaTokenNoValido() {
+        void getPorCuentaCredencialesInvalidas() {
+            // Arrange vacío
 
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/producto?idCuenta=1"))
                     .header("Authorization", "Bearer " + JWT_ADMIN)
                     .build(),
                 Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             mockServer.verify();
         }
 
         @Test 
-        @Disabled 
         @DisplayName("GET por GTIN devuelve UNAUTHORIZED [ERROR EN EL SERVICIO]")
         //No hay ningun CredencialesNoValidasException en el servicio getProductosPorGtin
-        void getPorGtinTokenNoValido() {
+        void getPorGtinCredencialesInvalidas() {
+            // Arrange vacío
 
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/producto?gtin=" + prod.getGtin()))
                     .header("Authorization", "Bearer " + JWT_ADMIN)
                     .build(),
                 Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             mockServer.verify();
         }
 
         @Test @DisplayName("POST crearProducto devuelve UNAUTHORIZED")
-        void crearProductoTokenNoValido() {
+        void crearProductoCredencialesInvalidas() {
+            // Arrange vacío
 
+            // Creamos la entrada del POST
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .post(endpoint(port, "/producto?idCuenta=1"))
                 .header("Authorization", "Bearer " + JWT_ADMIN)
@@ -1404,16 +1514,20 @@ class ProductoApplicationTests {
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             assertThat(resp.getBody()).isNull();
             mockServer.verify();
         }
 
         @Test @DisplayName("PUT actualizarProducto devuelve UNAUTHORIZED")
-        void actualizarProductoTokenNoValido() {
+        void actualizarProductoCredencialesInvalidas() {
+            // Arrange vacío
 
+            // Creamos la entrada del PUT
             ProductoEntradaDTO entrada = new ProductoEntradaDTO();
 
+            // Act
             RequestEntity<ProductoEntradaDTO> req = RequestEntity
                 .put(endpoint(port, "/producto/1"))
                 .header("Authorization", "Bearer " + JWT_ADMIN)
@@ -1422,13 +1536,16 @@ class ProductoApplicationTests {
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             mockServer.verify();
         }
 
         @Test @DisplayName("DELETE eliminarProducto devuelve UNAUTHORIZED")
-        void eliminarProductoTokenNoValido() {
+        void eliminarProductoCredencialesInvalidas() {
+            // Arrange vacío
 
+            // Act
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity
                     .delete(endpoint(port, "/producto/" + prod.getId()))
@@ -1436,6 +1553,7 @@ class ProductoApplicationTests {
                     .build(),
                     Void.class);
 
+            // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             mockServer.verify();
         }
