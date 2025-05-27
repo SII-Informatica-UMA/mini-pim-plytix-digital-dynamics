@@ -321,7 +321,7 @@ class ProductoApplicationTests {
                     ));
         }
 
-        @Test @DisplayName("GET por idProducto da OK con DTO correcto")
+        @Test @DisplayName("GET por idProducto da OK [ERROR]")
         void getPorId() {
             
 
@@ -344,7 +344,41 @@ class ProductoApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("GET por gtin da OK con DTO correcto")
+        @Test @DisplayName("GET por idProducto devuelve un unico producto en vez de lista [ERROR EN EL SERVICIO]")
+        void getPorIdError() {
+            
+
+            stubUsuarioAdmin();
+
+            // Act
+            ResponseEntity<Set<ProductoDTO>> resp = testRestTemplate.exchange(
+                getRequest("/producto?idProducto=" + prod.getId()),
+                new ParameterizedTypeReference<Set<ProductoDTO>>() {}
+            );
+
+            // Assert
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(resp.getBody().size()).isEqualTo(1);
+
+            mockServer.verify();
+        }
+
+        @Test @DisplayName("GET por gtin ERROR devuelve un unico producto en vez de lista [ERROR EN EL SERVICIO]")
+        void getPorGtinError() {
+            // No se valida usuario
+
+            // Act
+            ResponseEntity<Set<ProductoDTO>> resp = testRestTemplate.exchange(
+                getRequest("/producto?gtin=" + prod.getGtin()),
+                new ParameterizedTypeReference<Set<ProductoDTO>>() {}
+            );
+
+            // Assert
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(resp.getBody().size()).isEqualTo(1);
+        }
+
+        @Test @DisplayName("GET por gtin OK devuelve un unico producto [ERROR]")
         void getPorGtin() {
             // No se valida usuario
 
@@ -356,7 +390,7 @@ class ProductoApplicationTests {
 
             // Assert
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(resp.getBody().getId()).isEqualTo(prod.getId());
+            assertThat(resp.getBody().getNombre()).isEqualTo("ProdA");
         }
 
         @Test @DisplayName("GET por idCuenta devuelve lista con 1 elemento")
@@ -435,7 +469,45 @@ class ProductoApplicationTests {
                 .containsExactly("CatX");
             assertThat(resp.getBody().getRelaciones()).isEmpty();
             assertThat(resp.getBody().getAtributos()).isEmpty();
+            // Comprobamos que se ha guardado en la BD
+            assertThat(productoRepo.findById(resp.getBody().getId())).isPresent();
+            mockServer.verify();
+        }
 
+        @Test @DisplayName("POST crearProducto devuelve 201 con DTO correcto, pero location error [ERROR EN EL CONTROLADOR]")
+        //Creación erronea de la URI en el controlador
+        void crearProductoLocationError() {
+            stubUsuarioAdmin();
+            stubCuentaPlan(1000);
+
+            // Crear la entrada del POST
+            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+            entrada.setGtin("NEW-GTIN");
+            entrada.setSku("SKU1");
+            entrada.setNombre("NuevoProd");
+            entrada.setTextoCorto("T1");
+            entrada.setMiniatura("img.png");
+            CategoriaDTO catDto = new CategoriaDTO();
+            catDto.setId(cat.getId());
+            catDto.setNombre("CatX");
+            entrada.setCategorias(Collections.singleton(catDto));
+            entrada.setAtributos(Collections.emptySet());
+            entrada.setRelaciones(Collections.emptySet());
+
+            // Act
+            RequestEntity<ProductoEntradaDTO> req = RequestEntity
+                .post(endpoint(port, "/producto?idCuenta=1"))
+                .header("Authorization", "Bearer " + JWT_ADMIN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(entrada);
+
+            ResponseEntity<ProductoDTO> resp = testRestTemplate.exchange(req, ProductoDTO.class);
+
+            // Assert
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+            URI location = resp.getHeaders().getLocation();
+            assertThat(location).isNotNull();
+            assertThat(location.getPath()).isEqualTo("/producto/" + resp.getBody().getId()); 
             mockServer.verify();
         }
 
@@ -463,7 +535,8 @@ class ProductoApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("POST crearProducto sin categoría da 404")
+        @Test @DisplayName("POST crearProducto sin categoría devuelve 201 [ERROR EN EL SERVICIO]")
+        // Deberia dejar crear un producto sin categoría, pero el servicio no lo permite
         void crearProductoSinCategoria() {
 
             stubUsuarioAdmin();
@@ -489,7 +562,7 @@ class ProductoApplicationTests {
             ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
 
             // Assert
-            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(resp.getBody()).isNull();
 
             mockServer.verify();
@@ -779,6 +852,81 @@ class ProductoApplicationTests {
             mockServer.verify();
         }
 
+        @Test @DisplayName("PUT actualizarProducto elimina **solo** la relación indicada (asimétrico) [ERROR EN EL SERVICIO]")
+        void actualizarProductoEliminaSoloR1() {
+            // Creamos A->B con tipo R1 y B->A con tipo R2
+            Producto destino = new Producto();
+            destino.setGtin("GTIN-888");
+            destino.setSku("SKU-888");
+            destino.setNombre("OtroDestino");
+            destino.setCuentaId(prod.getCuentaId());
+            destino.setRelacionesOrigen(Collections.emptySet());
+            destino.setRelacionesDestino(Collections.emptySet());
+            destino.setAtributos(Collections.emptySet());
+            productoRepo.save(destino);
+
+            // A->B (R1)
+            Relacion R1 = new Relacion(); 
+            R1.setNombre("R1");
+            R1.setCuentaId(prod.getCuentaId()); 
+            relacionRepo.save(R1);
+
+            // B->A (R2)
+            Relacion R2 = new Relacion(); 
+            R2.setNombre("R2");
+            R2.setCuentaId(prod.getCuentaId()); 
+            relacionRepo.save(R2);
+
+            RelacionProducto relAB = new RelacionProducto();
+            relAB.setProductoOrigen(prod);
+            relAB.setProductoDestino(destino);
+            relAB.setTipoRelacion(R1);
+            relacionProductoRepo.save(relAB);
+
+            RelacionProducto relBA = new RelacionProducto();
+            relBA.setProductoOrigen(destino);
+            relBA.setProductoDestino(prod);
+            relBA.setTipoRelacion(R2);
+            relacionProductoRepo.save(relBA);
+            
+            assertThat(relacionProductoRepo.findByProductoOrigen(prod)).extracting(r->r.getTipoRelacion().getNombre()).containsExactly("R1");
+            assertThat(relacionProductoRepo.findByProductoOrigen(destino)).extracting(r->r.getTipoRelacion().getNombre()).containsExactly("R2");
+
+            //Hacemos PUT dejando **solo R2** en el DTO
+            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+            entrada.setGtin(prod.getGtin());
+            entrada.setSku(prod.getSku());
+            entrada.setNombre("ProdA-Edit");
+            entrada.setTextoCorto("TE");
+            entrada.setMiniatura("img2.png");
+            CategoriaDTO catDto = new CategoriaDTO();
+            catDto.setId(cat.getId());
+            catDto.setNombre("CatX");
+            entrada.setCategorias(Collections.singleton(catDto));
+            entrada.setAtributos(Collections.emptySet());
+
+            RelacionProductoDTO relDto = new RelacionProductoDTO();
+            relDto.setIdProductoDestino(destino.getId());
+            RelacionDTO rel = new RelacionDTO();
+            rel.setId(R2.getId());
+            rel.setNombre(R2.getNombre());
+            relDto.setRelacion(rel);
+            entrada.setRelaciones(Collections.singleton(relDto));
+
+            RequestEntity<ProductoEntradaDTO> req = RequestEntity
+                .put(endpoint(port, "/producto/" + prod.getId()))
+                .header("Authorization", "Bearer " + JWT_ADMIN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(entrada);
+            testRestTemplate.exchange(req, ProductoDTO.class);
+
+            //Esto debería dejar solo R2 (B->A), pero eliminará ambas:
+            assertThat(relacionProductoRepo.findByProductoOrigen(prod))
+                .extracting(r->r.getTipoRelacion().getNombre())
+                .containsExactly("R2"); 
+        }
+
+
         @Test @DisplayName("DELETE eliminarProducto devuelve 200 y sin entidad en BD")
         void eliminarProducto() {
 
@@ -966,6 +1114,40 @@ class ProductoApplicationTests {
 
             mockServer.verify();
         }
+
+        @Test @DisplayName("POST crearProducto con categoría de otra cuenta devuelve 403")
+        void crearProductoConCategoriaOtraCuentaDa404() {
+            stubUsuarioPerteneceCuenta(cat.getCuentaId(), true);
+            
+            ProductoEntradaDTO entrada = new ProductoEntradaDTO();
+            entrada.setGtin("NEW-GTIN");
+            entrada.setSku("SKU1");
+            entrada.setNombre("NuevoProd");
+            entrada.setTextoCorto("T1");
+            entrada.setMiniatura("img.png");
+            entrada.setCategorias(Collections.emptySet());
+            entrada.setAtributos(Collections.emptySet());
+            entrada.setRelaciones(Collections.emptySet());
+
+            Categoria otra = new Categoria();
+            otra.setNombre("X"); 
+            otra.setCuentaId(10);
+            categoriaRepo.save(otra);
+            CategoriaDTO catDto = new CategoriaDTO();
+            catDto.setId(otra.getId()); 
+            catDto.setNombre("X");
+            entrada.setCategorias(Set.of(catDto));
+
+            RequestEntity<ProductoEntradaDTO> req = RequestEntity
+                .post(endpoint(port, "/producto?idCuenta=1"))
+                .header("Authorization", "Bearer " + JWT_ADMIN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(entrada);
+
+            ResponseEntity<Void> resp = testRestTemplate.exchange(req, Void.class);
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
 
         @Test @DisplayName("PUT actualizarProducto devuelve FORBIDDEN")
         void actualizarProductoDevuelveForbidden() {
@@ -1228,7 +1410,7 @@ class ProductoApplicationTests {
                     .andExpect(method(HttpMethod.GET))
                     .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
         }
-        @Test @DisplayName("GET productos por categoría → FORBIDDEN si tras filtrar no hay acceso a ningún producto")
+        @Test @DisplayName("GET productos por categoría devuelve FORBIDDEN si tras filtrar no hay acceso a ningún producto")
         void getProductosPorCategoriaDevuelveForbiddenPorFiltro() {
 
             // Arrange:

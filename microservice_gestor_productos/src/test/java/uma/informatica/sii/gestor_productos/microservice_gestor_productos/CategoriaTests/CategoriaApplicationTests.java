@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 
 import java.net.URI;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -144,7 +146,7 @@ class CategoriaApplicationTests {
                     ));
         }
 
-        @Test @DisplayName("GET sin parametros → 400")
+        @Test @DisplayName("GET sin parametros devuelve 400")
         void getSinParams() {
             ResponseEntity<String> resp = testRestTemplate.exchange(
                 getRequest("/categoria-producto?"),
@@ -163,7 +165,7 @@ class CategoriaApplicationTests {
             
         }
         
-        @Test @DisplayName("GET cuenta válida pero sin categorías → []")
+        @Test @DisplayName("GET cuenta válida pero sin categorías devuelve []")
         void getCuentaSinCategorias() {
             ResponseEntity<CategoriaDTO[]> resp = testRestTemplate.exchange(
                 getRequest("/categoria-producto?idCuenta=2"),
@@ -172,7 +174,7 @@ class CategoriaApplicationTests {
             assertThat(resp.getBody()).isEmpty();
         }
 
-        @Test @DisplayName("POST crearCategoria válida → 201")
+        @Test @DisplayName("POST crearCategoria válida devuelve 201 [ERROR]")
         void crearCategoria() {
             
             CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
@@ -191,8 +193,32 @@ class CategoriaApplicationTests {
             
         }
 
+        @Test @DisplayName("POST crearCategoria válido pero Location ERROR [ERROR EN EL CONTROLADOR]")
+        void crearCategoriaLocationError() {
+            
+            CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
+            entrada.setNombre("NuevaCategoria");
+            
+            ResponseEntity<CategoriaDTO> resp = testRestTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/categoria-producto?idCuenta=2"))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                CategoriaDTO.class);
+
+            URI location = resp.getHeaders().getLocation();
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+            assertThat(resp.getBody()).isNotNull();
+            assertThat(resp.getBody().getNombre()).isEqualTo("NuevaCategoria");
+
+            // Verificamos que la Location no es correcta
+            assertThat(location.getPath()).isEqualTo("/categoria-producto/" + resp.getBody().getId());
+            
+        }
+
         @Test
-        @DisplayName("GET por cuenta sin permiso → 403")
+        @DisplayName("GET por cuenta sin permiso devuelve 403")
         void getCategoriasSinPermiso() {
             mockServer = MockRestServiceServer.createServer(restTemplate);
             stubUsuarioCliente();
@@ -213,7 +239,7 @@ class CategoriaApplicationTests {
         }
 
         @Test
-        @DisplayName("POST crearCategoria → FORBIDDEN")
+        @DisplayName("POST crearCategoria devuelve FORBIDDEN")
         void crearCategoriaNoPermitida() {
             mockServer = MockRestServiceServer.createServer(restTemplate);
             stubUsuarioCliente();
@@ -232,7 +258,7 @@ class CategoriaApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("POST crearCategoria sin permisos suficientes por maxCateg → 403")
+        @Test @DisplayName("POST crearCategoria sin permisos suficientes por maxCateg devuelve 403")
         void crearCategoriaSinPermisos() {
             mockServer = MockRestServiceServer.createServer(restTemplate);
             stubUsuarioCliente();
@@ -286,7 +312,7 @@ class CategoriaApplicationTests {
                     ));
         }
 
-        @Test @DisplayName("GET por idCategoria → OK")
+        @Test @DisplayName("GET por idCategoria devuelve OK [ERROR]")
         void getPorIdCategoria() {
 
             ResponseEntity<CategoriaDTO> resp = testRestTemplate.exchange(
@@ -296,7 +322,31 @@ class CategoriaApplicationTests {
             assertThat(resp.getBody().getNombre()).isEqualTo("Existente");
         }
 
-        @Test @DisplayName("PUT actualizarCategoria → 200")
+        @Test @DisplayName("GET por idCategoria devuelve OK, pero devuelve una Categoria en vez de una lista [ERROR EN EL SERVICIO]")
+        void getPorIdCategoriaError() {
+
+            ResponseEntity<Set<CategoriaDTO>> resp = testRestTemplate.exchange(
+                getRequest("/categoria-producto?idCategoria=" + cat.getId()),
+                new ParameterizedTypeReference<Set<CategoriaDTO>>() {});
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(resp.getBody()).isNotNull();
+            assertThat(resp.getBody().size()).isEqualTo(1);
+        }
+
+        @Test @DisplayName("GET por idCuenta devuelve OK")
+        void getPorIdCuenta() {
+            
+            ResponseEntity<Set<CategoriaDTO>> resp = testRestTemplate.exchange(
+                getRequest("/categoria-producto?idCuenta=" + cat.getCuentaId()),
+                new ParameterizedTypeReference<Set<CategoriaDTO>>() {});
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(resp.getBody()).isNotNull();
+            assertThat(resp.getBody().size()).isEqualTo(1);
+            assertThat(resp.getBody().iterator().next().getNombre()).isEqualTo("Existente");
+        }
+
+        @Test @DisplayName("PUT actualizarCategoria devuelve 200")
         void actualizarCategoria() {
             CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
             entrada.setNombre("Renombrada");
@@ -312,7 +362,7 @@ class CategoriaApplicationTests {
             assertThat(resp.getBody().getNombre()).isEqualTo("Renombrada");
         }
 
-        @Test @DisplayName("DELETE eliminarCategoria → 200")
+        @Test @DisplayName("DELETE eliminarCategoria devuelve 200")
         void eliminarCategoria() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.delete(endpoint(port, "/categoria-producto/" + cat.getId()))
@@ -326,7 +376,7 @@ class CategoriaApplicationTests {
 
 
         @Test 
-        @DisplayName("POST crearCategoria nombre existente → 403 [ERROR EN EL SERVICIO]")
+        @DisplayName("POST crearCategoria nombre existente devuelve 403 [ERROR EN EL SERVICIO]")
         // En el servicio se lanza una excepción incorrecta al existir el nombre
         void crearCategoriaNombreExistente() {
             CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
@@ -393,7 +443,7 @@ class CategoriaApplicationTests {
                     .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
         }
 
-        @Test @DisplayName("GET por idCategoria → FORBIDDEN")
+        @Test @DisplayName("GET por idCategoria devuelve FORBIDDEN")
         void getPorIdCategoria() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/categoria-producto?idCategoria=" + cat.getId()))
@@ -404,7 +454,7 @@ class CategoriaApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("GET por idCuenta → FORBIDDEN")
+        @Test @DisplayName("GET por idCuenta devuelve FORBIDDEN")
         void getPorCuenta() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/categoria-producto?idCuenta=" + cat.getCuentaId()))
@@ -416,7 +466,7 @@ class CategoriaApplicationTests {
 
         }
 
-        @Test @DisplayName("POST crearCategoria → FORBIDDEN")
+        @Test @DisplayName("POST crearCategoria devuelve FORBIDDEN")
         void crearCategoria() {
             CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
             entrada.setNombre("NoPermitida");
@@ -432,7 +482,7 @@ class CategoriaApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("PUT actualizarCategoria → FORBIDDEN")
+        @Test @DisplayName("PUT actualizarCategoria devuelve FORBIDDEN")
         void actualizarCategoria() {
             CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
             entrada.setNombre("IntentoEditar");
@@ -448,7 +498,7 @@ class CategoriaApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("DELETE eliminarCategoria → FORBIDDEN")
+        @Test @DisplayName("DELETE eliminarCategoria devuelve FORBIDDEN")
         void eliminarCategoria() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.delete(endpoint(port, "/categoria-producto/" + cat.getId()))
@@ -464,7 +514,7 @@ class CategoriaApplicationTests {
     @Nested
     @DisplayName("Token no válido")
     class TokenNoValido {
-        @Test @DisplayName("GET por idCategoria → 403")
+        @Test @DisplayName("GET por idCategoria devuelve 403")
         void getPorIdCategoria() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/categoria-producto?idCategoria=1"))
@@ -475,7 +525,7 @@ class CategoriaApplicationTests {
             assertThat(resp.getBody()).isNull();
         }
 
-        @Test @DisplayName("POST crearCategoria → 403")
+        @Test @DisplayName("POST crearCategoria devuelve 403")
         void crearCategoria() {
             CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
             entrada.setNombre("NoPermitida");
@@ -491,7 +541,7 @@ class CategoriaApplicationTests {
             assertThat(resp.getBody()).isNull();
         }
 
-        @Test @DisplayName("PUT actualizarCategoria → 403")
+        @Test @DisplayName("PUT actualizarCategoria devuelve 403")
         void actualizarCategoria() {
             CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
             entrada.setNombre("IntentoEditar");
@@ -507,7 +557,7 @@ class CategoriaApplicationTests {
             assertThat(resp.getBody()).isNull();
         }
 
-        @Test @DisplayName("DELETE eliminarCategoria → 403")
+        @Test @DisplayName("DELETE eliminarCategoria devuelve 403")
         void eliminarCategoria() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.delete(endpoint(port, "/categoria-producto/1"))
@@ -519,7 +569,7 @@ class CategoriaApplicationTests {
             assertThat(resp.getBody()).isNull();
         }
 
-        @Test @DisplayName("GET por idCuenta → 403")
+        @Test @DisplayName("GET por idCuenta devuelve 403")
         void getPorIdCuenta() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/categoria-producto?idCuenta=1"))
@@ -561,7 +611,7 @@ class CategoriaApplicationTests {
         }
 
 
-        @Test @DisplayName("GET por idCategoria → 401")
+        @Test @DisplayName("GET por idCategoria devuelve 401")
         void getPorIdCategoria() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/categoria-producto?idCategoria=1"))
@@ -572,7 +622,7 @@ class CategoriaApplicationTests {
             assertThat(resp.getBody()).isNull();
         }
 
-        @Test @DisplayName("POST crearCategoria → 401")
+        @Test @DisplayName("POST crearCategoria devuelve 401")
         void crearCategoria() {
             CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
             entrada.setNombre("NoPermitida");
@@ -588,7 +638,7 @@ class CategoriaApplicationTests {
             assertThat(resp.getBody()).isNull();
         }
 
-        @Test @DisplayName("PUT actualizarCategoria → 401")
+        @Test @DisplayName("PUT actualizarCategoria devuelve 401")
         void actualizarCategoria() {
             CategoriaEntradaDTO entrada = new CategoriaEntradaDTO();
             entrada.setNombre("IntentoEditar");
@@ -604,7 +654,7 @@ class CategoriaApplicationTests {
             assertThat(resp.getBody()).isNull();
         }
 
-        @Test @DisplayName("DELETE eliminarCategoria → 401")
+        @Test @DisplayName("DELETE eliminarCategoria devuelve 401")
         void eliminarCategoria() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.delete(endpoint(port, "/categoria-producto/1"))
@@ -616,7 +666,7 @@ class CategoriaApplicationTests {
             assertThat(resp.getBody()).isNull();
         }
 
-        @Test @DisplayName("GET por idCuenta → 401")
+        @Test @DisplayName("GET por idCuenta devuelve 401")
         void getPorIdCuenta() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/categoria-producto?idCuenta=1"))

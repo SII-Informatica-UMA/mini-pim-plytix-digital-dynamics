@@ -107,7 +107,7 @@ class RelacionApplicationTests {
     @DisplayName("Cuando NO hay relaciones")
     public class SinRelaciones {
         
-        @Test @DisplayName("GET sin params → 400")
+        @Test @DisplayName("GET sin params devuelve 400")
         void getSinParams() {
             ResponseEntity<String> resp = testRestTemplate.exchange(
                 getRequest("/relacion?"),
@@ -115,7 +115,7 @@ class RelacionApplicationTests {
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
 
-        @Test @DisplayName("GET con >1 params → 400")
+        @Test @DisplayName("GET con >1 params devuelve 400")
         void getMultiplesParams() {
             ResponseEntity<String> resp = testRestTemplate.exchange(
                 getRequest("/relacion?idRelacion=1&idCuenta=1"),
@@ -123,7 +123,7 @@ class RelacionApplicationTests {
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
 
-        @Test @DisplayName("GET idRelacion inexistente → 404")
+        @Test @DisplayName("GET idRelacion inexistente devuelve 404")
         void getIdNoExiste() {
             ResponseEntity<String> resp = testRestTemplate.exchange(
                 getRequest("/relacion?idRelacion=999"),
@@ -131,7 +131,7 @@ class RelacionApplicationTests {
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         }
 
-        @Test @DisplayName("GET idCuenta sin relaciones → []")
+        @Test @DisplayName("GET idCuenta sin relaciones devuelve []")
         void getPorCuentaVacia() {
             ResponseEntity<Set<RelacionDTO>> resp = testRestTemplate.exchange(
                 getRequest("/relacion?idCuenta=1"),
@@ -140,7 +140,7 @@ class RelacionApplicationTests {
             assertThat(resp.getBody()).isEmpty();
         }
 
-        @Test @DisplayName("POST crearRelacion → 403")
+        @Test @DisplayName("POST crearRelacion devuelve 403")
         void crearRelacion() {
             RelacionEntradaDTO entrada = new RelacionEntradaDTO();
 
@@ -153,7 +153,7 @@ class RelacionApplicationTests {
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
 
-        @Test @DisplayName("PUT modificarRelacion → 404")
+        @Test @DisplayName("PUT modificarRelacion devuelve 404")
         void modificarRelacion() {
             RelacionEntradaDTO entrada = new RelacionEntradaDTO();
             
@@ -166,7 +166,7 @@ class RelacionApplicationTests {
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         }
 
-        @Test @DisplayName("DELETE idRelacion que no existe → 404")
+        @Test @DisplayName("DELETE idRelacion que no existe devuelve 404")
         void deleteIdNoExiste() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 deleteRequest("/relacion/999"),
@@ -221,7 +221,7 @@ class RelacionApplicationTests {
                 ));
         }
 
-        @Test @DisplayName("GET por idRelacion → OK + DTO correcto")
+        @Test @DisplayName("GET por idRelacion devuelve OK + DTO correcto [ERROR]")
         void getPorId() {
             stubUsuarioAdmin();
 
@@ -234,7 +234,20 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("GET por idCuenta → lista con 1 elemento")
+        @Test @DisplayName("GET por idRelacion devuelve OK + DTO correcto, pero devuelve una unica relacion en vez de una lista [ERROR EN EL SERVICIO]")
+        void getPorIdError() {
+            stubUsuarioAdmin();
+
+            ResponseEntity<Set<RelacionDTO>> resp = testRestTemplate.exchange(
+                getRequest("/relacion?idRelacion=" + rel.getId()),
+                new ParameterizedTypeReference<Set<RelacionDTO>>() {});
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(resp.getBody()).hasSize(1);
+            mockServer.verify();
+        }
+
+        @Test @DisplayName("GET por idCuenta devuelve lista con 1 elemento")
         void getPorCuenta() {
             stubUsuarioAdmin();
 
@@ -247,7 +260,7 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("POST crearRelacion → 201 + Location + DTO")
+        @Test @DisplayName("POST crearRelacion devuelve 201 + DTO")
         void crearRelacion() {
             stubUsuarioAdmin();
             stubCuentaPlan(1000);
@@ -272,6 +285,37 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
 
+        @Test @DisplayName("POST crearRelacion devuelve 201 pero Location Error [ERROR EN EL CONTROLADOR]")
+        void crearRelacionLocationError() {
+            stubUsuarioAdmin();
+            stubCuentaPlan(1000);
+
+            RelacionEntradaDTO entrada = new RelacionEntradaDTO();
+            entrada.setNombre("Relacion Nueva");
+            entrada.setDescripcion("Descripcion");
+
+            ResponseEntity<RelacionDTO> resp = testRestTemplate.exchange(
+                RequestEntity.post(endpoint(port, "/relacion?idCuenta=" + rel.getCuentaId()))
+                    .header("Authorization", "Bearer " + JWT_ADMIN)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(entrada),
+                RelacionDTO.class
+            );
+
+            URI location = resp.getHeaders().getLocation();
+
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+            assertThat(resp.getHeaders().getLocation()).isNotNull();
+            assertThat(resp.getBody().getNombre()).isEqualTo("Relacion Nueva");
+            assertThat(resp.getBody().getDescripcion()).isEqualTo("Descripcion");
+
+            assertThat(location.getPath()).isEqualTo("/relacion/" + resp.getBody().getId());
+
+            mockServer.verify();
+        }
+
+
         @Test @DisplayName("POST crearRelacion sin datos devuelve 403")
         void crearRelacionSinDatos() {
             stubUsuarioAdmin();
@@ -291,7 +335,7 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("PUT actualizarRelacion → 200 + cambios aplicados")
+        @Test @DisplayName("PUT actualizarRelacion devuelve 200 + cambios aplicados")
         void actualizarRelacion() {
             stubUsuarioAdmin();
 
@@ -314,7 +358,7 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("DELETE eliminarRelacion → 200 + sin entidad en BD")
+        @Test @DisplayName("DELETE eliminarRelacion devuelve 200 + sin entidad en BD")
         void eliminarRelacion() {
             stubUsuarioAdmin();
 
@@ -330,13 +374,13 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("DELETE eliminarRelacion → 403 si la relación está en uso entre productos")
+        @Test @DisplayName("DELETE eliminarRelacion devuelve 403 si la relación está en uso entre productos")
         void eliminarRelacionConProductos() {
-            // 1) Stub de usuario Admin
+            // Stub de usuario Admin
             stubUsuarioAdmin();
             // (opcionalmente stubCuentaPlan si tu endpoint lo requiere)
 
-            // 2) Creamos producto origen
+            // Creamos producto origen
             Producto ori = new Producto();
             ori.setGtin("GTIN-998");
             ori.setSku("SKU-998");
@@ -347,7 +391,7 @@ class RelacionApplicationTests {
             ori.setAtributos(Collections.emptySet());
             productoRepo.save(ori);
 
-            // 3) Creamos producto destino
+            // Creamos producto destino
             Producto dest = new Producto();
             dest.setGtin("GTIN-999");
             dest.setSku("SKU-999");
@@ -358,26 +402,26 @@ class RelacionApplicationTests {
             dest.setAtributos(Collections.emptySet());
             productoRepo.save(dest);
 
-            // 4) Asignamos la relación entre ambos
+            // Asignamos la relación entre ambos
             RelacionProducto relProd = new RelacionProducto();
             relProd.setTipoRelacion(rel);
             relProd.setProductoOrigen(ori);
             relProd.setProductoDestino(dest);
             relacionProductoRepo.save(relProd);
 
-            // 5) Intentamos borrar la relación
+            // Intentamos borrar la relación
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 deleteRequest("/relacion/" + rel.getId()),
                 Void.class
             );
 
-            // 6) Comprobamos 403 Forbidden
+            // Comprobamos 403 Forbidden
             assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-            // 7) Comprobamos que la relación sigue en la BD
+            // Comprobamos que la relación sigue en la BD
             assertThat(relacionRepo.findById(rel.getId())).isPresent();
-            // 8) Comprobamos que la relación entre productos sigue en la BD
+            // Comprobamos que la relación entre productos sigue en la BD
             assertThat(relacionProductoRepo.findById(relProd.getId())).isPresent();
-            // 9) Verificamos que el mockServer ha recibido las peticiones esperadas
+
             mockServer.verify();
         }
     }
@@ -436,7 +480,7 @@ class RelacionApplicationTests {
                 .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
         }
 
-        @Test @DisplayName("GET por idRelacion → FORBIDDEN")
+        @Test @DisplayName("GET por idRelacion devuelve FORBIDDEN")
         void getPorId() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 getRequest("/relacion?idRelacion=" + rel.getId()),
@@ -446,7 +490,7 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("GET por idCuenta → FORBIDDEN")
+        @Test @DisplayName("GET por idCuenta devuelve FORBIDDEN")
         void getPorCuenta() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 getRequest("/relacion?idCuenta=" + rel.getCuentaId()),
@@ -456,7 +500,7 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("POST crearRelacion → FORBIDDEN")
+        @Test @DisplayName("POST crearRelacion devuelve FORBIDDEN")
         void crearRelacion() {
             RelacionEntradaDTO entrada = new RelacionEntradaDTO();
             entrada.setNombre("Relacion Nueva");
@@ -475,7 +519,7 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("PUT actualizarRelacion → FORBIDDEN")
+        @Test @DisplayName("PUT actualizarRelacion devuelve FORBIDDEN")
         void actualizarRelacion() {
             RelacionEntradaDTO entrada = new RelacionEntradaDTO();
             entrada.setNombre("Relacion Editada");
@@ -494,7 +538,7 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("DELETE eliminarRelacion → FORBIDDEN")
+        @Test @DisplayName("DELETE eliminarRelacion devuelve FORBIDDEN")
         void eliminarRelacion() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 deleteRequest("/relacion/" + rel.getId()),
@@ -559,7 +603,7 @@ class RelacionApplicationTests {
                 ));
         }
 
-        @Test @DisplayName("POST crearRelacion → FORBIDDEN por plan lleno")
+        @Test @DisplayName("POST crearRelacion devuelve FORBIDDEN por plan lleno")
         void crearRelacionPlanLleno() {
             RelacionEntradaDTO entrada = new RelacionEntradaDTO();
             entrada.setNombre("Relacion Nueva");
@@ -587,7 +631,7 @@ class RelacionApplicationTests {
     @DisplayName("Token no válido")
     class TokenNoValido {
 
-        @Test @DisplayName("GET por idRelacion → FORBIDDEN")
+        @Test @DisplayName("GET por idRelacion devuelve FORBIDDEN")
         void getPorId() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/relacion?idRelacion=1"))
@@ -600,7 +644,7 @@ class RelacionApplicationTests {
             assertThat(resp.getBody()).isNull();
         }
 
-        @Test @DisplayName("GET por idCuenta → FORBIDDEN")
+        @Test @DisplayName("GET por idCuenta devuelve FORBIDDEN")
         void getPorCuenta() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/relacion?idCuenta=1"))
@@ -613,7 +657,7 @@ class RelacionApplicationTests {
             assertThat(resp.getBody()).isNull();
         }
 
-        @Test @DisplayName("POST crearRelacion → FORBIDDEN")
+        @Test @DisplayName("POST crearRelacion devuelve FORBIDDEN")
         void crearRelacion() {
             RelacionEntradaDTO entrada = new RelacionEntradaDTO();
             entrada.setNombre("Relacion Nueva");
@@ -631,7 +675,7 @@ class RelacionApplicationTests {
             assertThat(resp.getBody()).isNull();
         }
 
-        @Test @DisplayName("PUT actualizarRelacion → FORBIDDEN")
+        @Test @DisplayName("PUT actualizarRelacion devuelve FORBIDDEN")
         void actualizarRelacion() {
             RelacionEntradaDTO entrada = new RelacionEntradaDTO();
             entrada.setNombre("Relacion Editada");
@@ -649,7 +693,7 @@ class RelacionApplicationTests {
             assertThat(resp.getBody()).isNull();
         }
 
-        @Test @DisplayName("DELETE eliminarRelacion → FORBIDDEN")
+        @Test @DisplayName("DELETE eliminarRelacion devuelve FORBIDDEN")
         void eliminarRelacion() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.delete(endpoint(port, "/relacion/1"))
@@ -691,7 +735,7 @@ class RelacionApplicationTests {
                 );
         }
 
-        @Test @DisplayName("GET por idRelacion → UNAUTHORIZED")
+        @Test @DisplayName("GET por idRelacion devuelve UNAUTHORIZED")
         void getPorId() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/relacion?idRelacion=" + rel.getId()))
@@ -706,7 +750,7 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("GET por idCuenta → UNAUTHORIZED")
+        @Test @DisplayName("GET por idCuenta devuelve UNAUTHORIZED")
         void getPorCuenta() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.get(endpoint(port, "/relacion?idCuenta=" + rel.getCuentaId()))
@@ -722,7 +766,7 @@ class RelacionApplicationTests {
 
         }
 
-        @Test @DisplayName("POST crearRelacion → UNAUTHORIZED")
+        @Test @DisplayName("POST crearRelacion devuelve UNAUTHORIZED")
         void crearRelacion() {
             RelacionEntradaDTO entrada = new RelacionEntradaDTO();
             entrada.setNombre("Relacion Nueva");
@@ -742,7 +786,7 @@ class RelacionApplicationTests {
             mockServer.verify();
         }
 
-        @Test @DisplayName("PUT actualizarRelacion → UNAUTHORIZED")
+        @Test @DisplayName("PUT actualizarRelacion devuelve UNAUTHORIZED")
         void actualizarRelacion() {
             RelacionEntradaDTO entrada = new RelacionEntradaDTO();
             entrada.setNombre("Relacion Editada");
@@ -763,7 +807,7 @@ class RelacionApplicationTests {
 
         }
 
-        @Test @DisplayName("DELETE eliminarRelacion → UNAUTHORIZED")
+        @Test @DisplayName("DELETE eliminarRelacion devuelve UNAUTHORIZED")
         void eliminarRelacion() {
             ResponseEntity<Void> resp = testRestTemplate.exchange(
                 RequestEntity.delete(endpoint(port, "/relacion/" + rel.getId()))
