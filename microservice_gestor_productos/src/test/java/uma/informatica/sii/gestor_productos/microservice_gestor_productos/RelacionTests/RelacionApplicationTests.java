@@ -187,7 +187,6 @@ class RelacionApplicationTests {
             rel.setNombre("Relacion1");
             relacionRepo.save(rel);
 
-             // Inicializamos MockRestServiceServer sobre el RestTemplate interno
             mockServer = MockRestServiceServer.createServer(restTemplate);
         }
         private void stubUsuarioAdmin() {
@@ -378,7 +377,6 @@ class RelacionApplicationTests {
         void eliminarRelacionConProductos() {
             // Stub de usuario Admin
             stubUsuarioAdmin();
-            // (opcionalmente stubCuentaPlan si tu endpoint lo requiere)
 
             // Creamos producto origen
             Producto ori = new Producto();
@@ -557,7 +555,6 @@ class RelacionApplicationTests {
 
         @BeforeEach
         void datos() {
-                // Inicializamos MockRestServiceServer sobre el RestTemplate interno
             mockServer = MockRestServiceServer.createServer(restTemplate);
             stubUsuarioCliente();
         }
@@ -715,7 +712,6 @@ class RelacionApplicationTests {
 
         @BeforeEach
         void initMockAndDatos() {
-            // Inicializamos MockRestServiceServer sobre el RestTemplate interno
             mockServer = MockRestServiceServer.createServer(restTemplate);
 
             // Creamos una relación de ejemplo

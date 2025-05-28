@@ -225,7 +225,7 @@ class CategoriaApplicationTests {
             stubUsuarioPerteneceCuenta(4, false);
             Categoria c = new Categoria();
             c.setNombre("CatInvalida");
-            c.setCuentaId(4); // una cuenta NO autorizada (ver stubs)
+            c.setCuentaId(4);
             categoriaRepo.save(c);
 
             ResponseEntity<Void> resp = testRestTemplate.exchange(
